@@ -3,5 +3,8 @@
 import PackageDescription
 
 let package = Package(
-    name: "SwiftProtocolParser"
+   name: "SwiftProtocolParser"
+   , dependencies: [
+      .Package(url: "../ParseKit", majorVersion: 0)
+   ]
 )
