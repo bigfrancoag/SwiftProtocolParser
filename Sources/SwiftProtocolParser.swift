@@ -60,9 +60,9 @@ public enum SwiftProtocolParser {
 
    static let identifierChar = digit <|> character
    static let identifierHead = identifierChar <|> underscore
-   static let identifier = ({ s in { s + $0.joined(separator: "") } } <^> identifierHead <*> identifierChar.*).token()
+   static let identifier = (curry { s, xs in s + xs.joined(separator: "") } <^> identifierHead <*> identifierChar.*).token()
 
-   static let rawAttribute = { name in { args in (name: name, args: args) } } <^> identifier <*> Parsers.regex(pattern: "\\(.*\\)").token()
+   static let rawAttribute = curry { name, args in (name: name, args: args) } <^> identifier <*> Parsers.regex(pattern: "\\(.*\\)").token()
    static let attributeString = rawAttribute.map { "\($0.name)\($0.args)" } 
    static let optionalAttributesString = rawAttribute.many().map { xs in xs.map {"\($0.name)\($0.args)" }.joined(separator: " ") }.map { $0.isEmpty ? "" : $0 + " " }
    static let attribute = rawAttribute.map { Attribute(name: $0.name, argumentsClause: $0.args) } 
@@ -70,31 +70,37 @@ public enum SwiftProtocolParser {
    static let accessModifierList = publicKeyword <|> privateKeyword <|> fileprivateKeyword <|> internalKeyword <|> openKeyword 
    static let accessModifier = ((accessModifierList <|> Parser(pure: "internal")).token()).map { AccessModifier(rawValue: $0) }
 
-   static let typeAnnotation = { attrs in { inOut in { t in "\(attrs)\(inOut)\(t)" } } }
+   static let typeAnnotation = curry { attrs, inOut, t in "\(attrs)\(inOut)\(t)" }
       <^> optionalAttributesString
       <*> optionalInout
       <*> embeddedType()
 
-   static let typeAnnotationClause = { _ in { ": \($0)" } } <^> colon <*> typeAnnotation
+   static let typeAnnotationClause = curry { _, t in ": \(t)" } <^> colon <*> typeAnnotation
 
    static let typeName = identifier
    static let anyType = anyKeyword
    static let selfType = selfKeyword
    static let singleTupleType = openParens *> embeddedType() <* closeParens
-   static let arrayType = { _ in { t in { _ in "[\(t)]" } } } <^> openSquare <*> embeddedType() <*> closeSquare
-   static let dictType = { _ in { k in { _ in { v in { _ in "[\(k):\(v)]" } } } } } <^> openSquare <*> embeddedType() <*> colon <*> embeddedType() <*> closeSquare 
-   static let optType = { t in { _ in "\(t)?" } } <^> embeddedType() <*> questionMark
-   static let iuoType = { t in { _ in "\(t)!" } } <^> embeddedType() <*> bang
+   static let arrayType = curry { _, t, _ in "[\(t)]" } <^> openSquare <*> embeddedType() <*> closeSquare
+   static let dictType = curry { _, k, _, v, _ in "[\(k):\(v)]" }
+      <^> openSquare
+      <*> embeddedType()
+      <*> colon
+      <*> embeddedType()
+      <*> closeSquare
+
+   static let optType = curry { t, _ in "\(t)?" } <^> embeddedType() <*> questionMark
+   static let iuoType = curry { t, _ in "\(t)!" } <^> embeddedType() <*> bang
 
    static let funcArgsNoParams = openParens *> Parser(pure: "()") <* closeParens
-   static let labeledArg = { name in { t in "\(name)\(t)" } } <^> identifier <*> typeAnnotationClause
+   static let labeledArg = curry { name, t in "\(name)\(t)" } <^> identifier <*> typeAnnotationClause
    static let funcArg = typeAnnotation <|> labeledArg
    static let funcArgsList = funcArg.separatedBy(some: comma).map { $0.joined(separator: ", ") }
-   static let funcArgParams = { args in { ellipsis in "\(args)\(ellipsis)" } } <^> funcArgsList <*> optionalEllipsis
+   static let funcArgParams = curry { args, ellipsis in "\(args)\(ellipsis)" } <^> funcArgsList <*> optionalEllipsis
    static let funcArgsWithParams = openParens *> funcArgParams <* closeParens
    static let funcArguments = funcArgsNoParams <|> funcArgsWithParams
    static let optionalThrows = padRight((throwsKeyword <|> rethrowsKeyword).?)
-   static let functionType = { attrs in { args in { thrws in { _ in { t in "\(attrs)\(args)\(thrws) -> \(t)" } } } } }
+   static let functionType = curry { attrs, args, thrws, _, t in "\(attrs)\(args)\(thrws) -> \(t)" }
       <^> optionalAttributesString
       <*> funcArguments
       <*> optionalThrows
@@ -102,7 +108,7 @@ public enum SwiftProtocolParser {
       <*> embeddedType()
 
    static let tupleElementName = identifier
-   static let tupleElement = ({ name in { t in "\(name)\(t)" } } <^> tupleElementName <*> typeAnnotationClause) <|> embeddedType()
+   static let tupleElement = (curry { name, t in "\(name)\(t)" } <^> tupleElementName <*> typeAnnotationClause) <|> embeddedType()
    static let tupleElements = tupleElement.separatedBy(some: comma).map { $0.joined(separator: ", ") }
    static let nonEmptyTuple = openParens *> tupleElements <* closeParens
    static let emptyTuple = openParens *> Parser(pure: "()") <* closeParens
@@ -131,7 +137,7 @@ public enum SwiftProtocolParser {
    static let genericArg = type
    static let genericArgumentsList = genericArg.separatedBy(some: comma).map { $0.joined(separator: ", ") }
    static let genericArgumentsClause = openAngle *> genericArgumentsList <* closeAngle
-   static let typeIdentifierPart = { name in { genArgs in "\(name)\(genArgs)" } } <^>  typeName <*> genericArgumentsClause
+   static let typeIdentifierPart = curry { name, genArgs in "\(name)\(genArgs)" } <^>  typeName <*> genericArgumentsClause
 
    static func typeIdentifier() -> Parser<String> {
       return typeIdentifierPart.separatedBy(some: period).map { $0.joined(separator: ".") }
@@ -149,24 +155,24 @@ public enum SwiftProtocolParser {
    static let mutationModifier = mutationKeyword.map { _ in DeclarationModifier.isMutation }
    static let nonmutationModifier = nonmutationKeyword.map { _ in DeclarationModifier.isNonmutation }
    static let accessModifierListMapped: Parser<AccessModifier> = accessModifierList.map { AccessModifier(rawValue: $0)! } 
-   static let memberAccessModifier = { (access: AccessModifier) in { (setter: String?) in setter.map { _ in DeclarationModifier.setterAccess(access) } ?? .access(access) } }
+   static let memberAccessModifier = curry { (access: AccessModifier, setter: String?) in setter.map { _ in DeclarationModifier.setterAccess(access) } ?? .access(access) }
       <^> accessModifierListMapped
       <*> (openParens *> setKeyword <* closeParens).?
 
    static let propertyDeclarationModifiers = (optionalModifier <|> mutationModifier <|> nonmutationModifier <|> memberAccessModifier).many()
-   static let variableDeclarationHead: Parser<(attributes: [Attribute], modifiers: [DeclarationModifier])> = { attrs in { mods in (attibutes: attrs, modifiers: mods) } }
+   static let variableDeclarationHead: Parser<(attributes: [Attribute], modifiers: [DeclarationModifier])> = curry { attrs, mods in (attributes: attrs, modifiers: mods) }
       <^> attribute.many() 
       <*> (propertyDeclarationModifiers <* varKeyword)
 
    static let variableName = identifier
-   static let getterClause = { attrs in { muts in { getter in "\(attrs)\(muts)\(getter)" } } } <^> optionalAttributesString <*> orEmpty((mutationKeyword <|> nonmutationKeyword).?) <*> getKeyword
-   static let setterClause = { attrs in { muts in { setter in "\(attrs)\(muts)\(setter)" } } } <^> optionalAttributesString <*> orEmpty((mutationKeyword <|> nonmutationKeyword).?) <*> setKeyword
-   static let setterThanGetter = {setter in { getter in (getter: getter, setter: setter) } } <^> setterClause <*> getterClause 
+   static let getterClause = curry { attrs, muts, getter in "\(attrs)\(muts)\(getter)" } <^> optionalAttributesString <*> orEmpty((mutationKeyword <|> nonmutationKeyword).?) <*> getKeyword
+   static let setterClause = curry { attrs, muts, setter in "\(attrs)\(muts)\(setter)" } <^> optionalAttributesString <*> orEmpty((mutationKeyword <|> nonmutationKeyword).?) <*> setKeyword
+   static let setterThanGetter = curry { setter, getter in (getter: getter, setter: setter) } <^> setterClause <*> getterClause 
    static let setterThanGetterClause = openBlock *> setterThanGetter <* closeBlock
-   static let getterThanSetter = {getter in { setter in (getter: getter, setter: setter) } } <^> getterClause <*> orEmpty(setterClause.?)
+   static let getterThanSetter = curry { getter, setter in (getter: getter, setter: setter) } <^> getterClause <*> orEmpty(setterClause.?)
    static let getterThanSetterClause = openBlock *> getterThanSetter <* closeBlock
    static let getterSetterClause = getterThanSetterClause <|> setterThanGetterClause
-   static let propertyMember = { head in { name in { _ in { t in { getset in PropertyMember(attributes: head.attributes, modifiers: head.modifiers, name: name, type: t, getterClause: getset.getter, setterClause: getset.setter) } } } } } 
+   static let propertyMember = curry { head, name, _, t, getset in PropertyMember(attributes: head.attributes, modifiers: head.modifiers, name: name, type: t, getterClause: getset.getter, setterClause: getset.setter) }
       <^> variableDeclarationHead
       <*> variableName
       <*> colon
@@ -189,7 +195,7 @@ public enum SwiftProtocolParser {
    static let protocolMember: Parser<ProtocolMember> = propertyProtocolMember // <|> methodProtocolMember
    static let protocolBlock: Parser<[ProtocolMember]> = openBlock *> protocolMember.separatedBy(statementSeparator) <* closeBlock
 
-   static let protocolDeclaration = { attrs in { optModifier in { _ in { xs in { members in ProtocolDeclaration(attributes: attrs, accessModifier: optModifier, inheritance: xs, members: members) } } } }  }
+   static let protocolDeclaration = curry { attrs, optModifier, _, xs, members in ProtocolDeclaration(attributes: attrs, accessModifier: optModifier, inheritance: xs, members: members) }
       <^> attribute.many()
       <*> accessModifier
       <*> protocolKeyword
