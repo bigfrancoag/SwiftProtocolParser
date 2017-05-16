@@ -4,4 +4,5 @@ public enum DeclarationModifier {
    case isOptional
    case isMutation
    case isNonmutation
+   case isStatic
 }

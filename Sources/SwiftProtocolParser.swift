@@ -52,6 +52,7 @@ public enum SwiftProtocolParser {
    static let funcKeyword = Parsers.token("func").token()
    static let anyKeyword = Parsers.token("Any").token()
    static let selfKeyword = Parsers.token("Self").token()
+   static let staticKeyword = Parsers.token("static").token()
    static let optionalInout = padRight(inoutKeyword.?)
    static let optionalEllipsis = orEmpty(ellipsis.?)
    static let semicolon = Parsers.token(";").token()
@@ -159,7 +160,9 @@ public enum SwiftProtocolParser {
       <^> accessModifierListMapped
       <*> (openParens *> setKeyword <* closeParens).?
 
-   static let propertyDeclarationModifiers = (optionalModifier <|> mutationModifier <|> nonmutationModifier <|> memberAccessModifier).many()
+   static let staticModifier = staticKeyword.map { _ in DeclarationModifier.isStatic }
+
+   static let propertyDeclarationModifiers = (optionalModifier <|> mutationModifier <|> nonmutationModifier <|> memberAccessModifier <|> staticModifier).many()
    static let variableDeclarationHead: Parser<(attributes: [Attribute], modifiers: [DeclarationModifier])> = curry { attrs, mods in (attributes: attrs, modifiers: mods) }
       <^> attribute.many() 
       <*> (propertyDeclarationModifiers <* varKeyword)
