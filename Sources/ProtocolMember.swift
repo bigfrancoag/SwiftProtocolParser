@@ -3,6 +3,5 @@ public enum ProtocolMember {
    case property(PropertyMember)
    case method(MethodMember)
    case sub(SubscriptMember)
-   case op(OperatorMember)
    case associatedType(AssociatedTypeMember)
 }
