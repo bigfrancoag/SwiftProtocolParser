@@ -5,8 +5,8 @@ public enum SwiftProtocolParser {
       var chars = "/=-+!*%<>&|^~?"
 
       //TODO: Add all unicode accepatable chars
-/*
       chars += "\u{A1}\u{A2}\u{A3}\u{A4}\u{A5}\u{A6}\u{A7}"
+/*
       chars += "\u{A9}\u{AA}\u{AB}"
       chars += "\u{AC}\u{AD}\u{AE}"
       chars += "\u{B0}\u{B1}\u{B6}\u{BB}\u{BF}\u{D7}\u{F7}"
@@ -108,19 +108,9 @@ public enum SwiftProtocolParser {
    }
 
    static func anyChar(from chars: String) -> Parser<String> {
-      func uncons(_ s: String) -> (String, String)? {
-         if s.isEmpty {
-            return nil
-         }
-
-         let index = s.index(after: s.startIndex)
-         let head = s.substring(to: index)
-         let tail = s.substring(from: index)
-         return (head, tail)
-      }
       return Parser { s in
          
-         guard let (head, rest) = uncons(s)
+         guard let (head, rest) = s.uncons()
             , chars.contains(head) else {
             return []
          }
@@ -128,8 +118,8 @@ public enum SwiftProtocolParser {
       }
    }
 
-   static let digit = Parsers.regex(pattern: "0-9")
-   static let character = Parsers.regex(pattern: "A-Za-z")
+   static let digit = Parsers.regex(pattern: "[0-9]")
+   static let character = Parsers.regex(pattern: "[A-Za-z]")
    static let underscore = Parsers.token("_")
    static let colon = Parsers.token(":").token()
    static let comma = Parsers.token(",").token()
@@ -138,6 +128,7 @@ public enum SwiftProtocolParser {
    static let bang = Parsers.token("!").token()
    static let ellipsis = Parsers.token("...").token()
    static let ampersand = Parsers.token("&").token()
+   static let atSign = Parsers.token("@")
 
    static let openAngle = Parsers.token("<").token()
    static let closeAngle = Parsers.token(">").token()
@@ -178,24 +169,18 @@ public enum SwiftProtocolParser {
    static let newLine = (Parsers.token("\n") <|> Parsers.token("\r") <|> Parsers.token("\r\n")).token()
    static let statementSeparator = semicolon <|> newLine
 
-   static let identifierChar = digit <|> character
-   static let identifierHead = identifierChar <|> underscore
-   static let identifier = (curry { s, xs in s + xs.joined(separator: "") } <^> identifierHead <*> identifierChar.*).token()
+   static let identifierChar = digit <|> identifierHead
+   static let identifierHead = character <|> underscore
+   static let baseIdentifier = curry { s, xs in s + xs.joined(separator: "") } <^> identifierHead <*> identifierChar.*
+   static let identifier = baseIdentifier.token()
 
-   static let rawAttribute = curry { name, args in (name: name, args: args) } <^> identifier <*> Parsers.regex(pattern: "\\(.*\\)").token()
-   static let attributeString = rawAttribute.map { "\($0.name)\($0.args)" } 
-   static let optionalAttributesString = rawAttribute.many().map { xs in xs.map {"\($0.name)\($0.args)" }.joined(separator: " ") }.map { $0.isEmpty ? "" : $0 + " " }
+   static let rawAttribute = curry { name, args in (name: name, args: args) } <^> (atSign *> baseIdentifier).token() <*> orEmpty(Parsers.regex(pattern: "\\(.*\\)").token().?)
+   static let attributeString = rawAttribute.map { "@\($0.name)\($0.args)" } 
+   static let optionalAttributesString = rawAttribute.many().map { xs in xs.map {"@\($0.name)\($0.args)" }.joined(separator: " ") }.map { $0.isEmpty ? "" : $0 + " " }
    static let attribute = rawAttribute.map { Attribute(name: $0.name, argumentsClause: $0.args) } 
 
    static let accessModifierList = publicKeyword <|> privateKeyword <|> fileprivateKeyword <|> internalKeyword <|> openKeyword 
-   static let accessModifier = ((accessModifierList <|> Parser(pure: "internal")).token()).map { AccessModifier(rawValue: $0) }
-
-   static let typeAnnotation = curry { attrs, inOut, t in "\(attrs)\(inOut)\(t)" }
-      <^> optionalAttributesString
-      <*> optionalInout
-      <*> embeddedType()
-
-   static let typeAnnotationClause = curry { _, t in ": \(t)" } <^> colon <*> typeAnnotation
+   static let typeAccessModifier = ((accessModifierList <|> Parser(pure: "internal")).token()).map { AccessModifier(rawValue: $0)! }
 
    static let typeName = identifier
    static let anyType = anyKeyword
@@ -238,7 +223,8 @@ public enum SwiftProtocolParser {
    static let protocolCompositionType = protocolIdentifier.separatedBy(some: ampersand).map { xs in xs.joined(separator: " & ") }
 
    static let type = (
-      anyType
+      typeName
+      <|> anyType
       <|> selfType
       <|> singleTupleType
       <|> arrayType
@@ -253,6 +239,13 @@ public enum SwiftProtocolParser {
    static func embeddedType() -> Parser<String> {
       return type
    }
+
+   static let typeAnnotation = curry { attrs, inOut, t in "\(attrs)\(inOut)\(t)" }
+      <^> optionalAttributesString
+      <*> optionalInout
+      <*> embeddedType()
+
+   static let typeAnnotationClause = curry { _, t in ": \(t)" } <^> colon <*> typeAnnotation
 
    static let genericArg = type
    static let genericArgumentsList = genericArg.separatedBy(some: comma).map { $0.joined(separator: ", ") }
@@ -302,8 +295,8 @@ public enum SwiftProtocolParser {
       <*> getterSetterClause
 
    static let propertyProtocolMember = propertyMember.map { ProtocolMember.property($0) }
-
-   static let methodDeclarationModifiers = propertyDeclarationModifiers
+   static let methodAccessModifier = accessModifierListMapped.map { DeclarationModifier.access($0) }
+   static let methodDeclarationModifiers = (optionalModifier <|> mutationModifier <|> nonmutationModifier <|> methodAccessModifier <|> staticModifier).many()
    static let functionHead: Parser<(attributes: [Attribute], modifiers: [DeclarationModifier])> = curry { attrs, mods, _ in (attributes: attrs, modifiers: mods) } <^> attribute.many() <*> methodDeclarationModifiers <*> funcKeyword
    static let operatorHead = anyChar(from: operatorHeadCharString())
    static let operatorChar = operatorHead //TODO: add unicode chars
@@ -337,7 +330,7 @@ public enum SwiftProtocolParser {
 
    static let protocolDeclaration = curry { attrs, optModifier, _, xs, members in ProtocolDeclaration(attributes: attrs, accessModifier: optModifier, inheritance: xs, members: members) }
       <^> attribute.many()
-      <*> accessModifier
+      <*> typeAccessModifier
       <*> protocolKeyword
       <*> inheritanceList
       <*> protocolBlock
