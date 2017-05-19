@@ -1,5 +1,14 @@
 import ParseKit
 
+extension Parser {
+   func debug(_ s: String = "Found") -> Parser {
+      return self.map {
+         print("\(s): \($0)")
+         return $0
+      }
+   }
+}
+
 public enum SwiftProtocolParser {
    static func operatorHeadCharString() -> String {
       var chars = "/=-+!*%<>&|^~?"
@@ -121,14 +130,16 @@ public enum SwiftProtocolParser {
    static let digit = Parsers.regex(pattern: "[0-9]")
    static let character = Parsers.regex(pattern: "[A-Za-z]")
    static let underscore = Parsers.token("_")
+   static let questionMark = Parsers.token("?")
+   static let bang = Parsers.token("!")
+   static let atSign = Parsers.token("@")
+
+   //Include leading whitespace
    static let colon = Parsers.token(":").token()
    static let comma = Parsers.token(",").token()
    static let period = Parsers.token(".").token()
-   static let questionMark = Parsers.token("?").token()
-   static let bang = Parsers.token("!").token()
    static let ellipsis = Parsers.token("...").token()
    static let ampersand = Parsers.token("&").token()
-   static let atSign = Parsers.token("@")
 
    static let openAngle = Parsers.token("<").token()
    static let closeAngle = Parsers.token(">").token()
@@ -185,7 +196,7 @@ public enum SwiftProtocolParser {
    static let typeName = identifier
    static let anyType = anyKeyword
    static let selfType = selfKeyword
-   static let singleTupleType = openParens *> type <* closeParens
+   static let singleTupleType = (openParens *> type <* closeParens).map { "(\($0))" }
    static let arrayType = curry { _, t, _ in "[\(t)]" } <^> openSquare <*> type <*> closeSquare
    static let dictType = curry { _, k, _, v, _ in "[\(k):\(v)]" }
       <^> openSquare
@@ -194,15 +205,14 @@ public enum SwiftProtocolParser {
       <*> type
       <*> closeSquare
 
-   static let optType = curry { t, _ in "\(t)?" } <^> type <*> questionMark
-   static let iuoType = curry { t, _ in "\(t)!" } <^> type <*> bang
+   static let optType = curry { t, xs in t + xs.joined(separator: "") } <^> (typeName <|> singleTupleType) <*> (questionMark <|> bang).+
 
    static let funcArgsNoParams = openParens *> Parser(pure: "()") <* closeParens
    static let labeledArg = curry { name, t in "\(name)\(t)" } <^> identifier <*> Parser(lazy: typeAnnotationClause)
    static let funcArg = typeAnnotation <|> labeledArg
    static let funcArgsList = funcArg.separatedBy(some: comma).map { $0.joined(separator: ", ") }
    static let funcArgParams = curry { args, ellipsis in "\(args)\(ellipsis)" } <^> funcArgsList <*> optionalEllipsis
-   static let funcArgsWithParams = openParens *> funcArgParams <* closeParens
+   static let funcArgsWithParams = openParens *> funcArgParams <* closeParens.map { "(\($0))" }
    static let funcArguments = funcArgsNoParams <|> funcArgsWithParams
    static let optionalThrows = padRight((throwsKeyword <|> rethrowsKeyword).?)
    static let functionType = curry { attrs, args, thrws, _, t in "\(attrs)\(args)\(thrws) -> \(t)" }
@@ -214,23 +224,23 @@ public enum SwiftProtocolParser {
 
    static let tupleElementName = identifier
    static let tupleElement = (curry { name, t in "\(name)\(t)" } <^> tupleElementName <*> typeAnnotationClause) <|> type
+
    static let tupleElements = tupleElement.separatedBy(some: comma).map { $0.joined(separator: ", ") }
-   static let nonEmptyTuple = openParens *> tupleElements <* closeParens
-   static let emptyTuple = openParens *> Parser(pure: "()") <* closeParens
-   static let tupleType = emptyTuple <|> nonEmptyTuple
+   static let nonEmptyTuple = (openParens *> tupleElements <* closeParens).map { "(\($0))" }
+   static let emptyTuple = (openParens *> Parser(pure: "()") <* closeParens)
+   static let tupleType = (emptyTuple <|> nonEmptyTuple)
 
    static let protocolIdentifier = typeIdentifier()
    static let protocolCompositionType = protocolIdentifier.separatedBy(some: ampersand).map { xs in xs.joined(separator: " & ") }
 
    static let type: Parser<String> = Parser(lazy: (
-      Parser(lazy: typeName)
+      Parser(lazy: optType)
       <|> Parser(lazy: anyType)
       <|> Parser(lazy: selfType)
-      <|> Parser(lazy: singleTupleType)
+      <|> Parser(lazy: typeName)
       <|> Parser(lazy: arrayType)
       <|> Parser(lazy: dictType)
-      <|> Parser(lazy: optType)
-      <|> Parser(lazy: iuoType)
+      <|> Parser(lazy: singleTupleType)
       <|> Parser(lazy: functionType)
       <|> Parser(lazy: tupleType)
       <|> Parser(lazy: protocolCompositionType)

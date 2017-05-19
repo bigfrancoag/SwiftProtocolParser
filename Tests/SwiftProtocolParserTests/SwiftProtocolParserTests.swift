@@ -428,14 +428,205 @@ class SwiftProtocolParserTests: XCTestCase {
 
    func testTypeString() {
       let s = "String test"
-print("s=\(s)")
       let sut = SwiftProtocolParser.type
-print("sut=\(sut)")
+
       let result = sut.run(on: s)
-print("result=\(result)")
+
       XCTAssertFalse(result.isEmpty)
       XCTAssertEqual(result.count, 1)
       XCTAssertEqual(result[0].result, "String")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeSingleTupleInt() {
+      let s = "(Int) test"
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "(Int)")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeOptionalInt() {
+      let s = "Int? test"
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "Int?")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeOptionalOptionalBool() {
+      let s = "Bool?? test"
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "Bool??")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeIUODouble() {
+      let s = "Double! test"
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "Double!")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeAny() {
+      let s = "Any test"
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "Any")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeOptionalAny() {
+      let s = "Any? test"
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "Any?")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeSelf() {
+      let s = "Self test"
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "Self")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeStringArray() {
+      let s = "[String] test"
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "[String]")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeOptionalStringArray() {
+      let s = "[String?] test"
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "[String?]")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeIntArrayArray() {
+      let s = "[[Int]] test"
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "[[Int]]")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeIntDoubleDict() {
+      let s = "[Int:Double] test"
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "[Int:Double]")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeIntDoubleArrayDict() {
+      let s = "[Int : [Double]] test"
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "[Int:[Double]]")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeIntBoolTuple() {
+      let s = "(Int,Bool) test"
+
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "(Int, Bool)")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeStringStringTupleIntArrayTuple() {
+      let s = "( (String  , String) ,  [Int]   ) test"
+
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "((String, String), [Int])")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeIntIntIntStringTuple() {
+      let s = "(Int,Int,Int,String) test"
+
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "(Int, Int, Int, String)")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeEmptyFunc() {
+      let s = "() -> () test"
+
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "() -> ()")
       XCTAssertEqual(result[0].remaining, " test")
    }
 
@@ -489,5 +680,21 @@ print("result=\(result)")
       , ("testTypeAccessModifier_invalid_returns_internal", testTypeAccessModifier_invalid_returns_internal)
       , ("testTypeAccessModifier_valid_returns_modifier", testTypeAccessModifier_valid_returns_modifier)
       , ("testTypeString", testTypeString)
+      , ("testTypeOptionalInt", testTypeOptionalInt)
+      , ("testTypeOptionalOptionalBool", testTypeOptionalOptionalBool)
+      , ("testTypeIUODouble", testTypeIUODouble)
+      , ("testTypeAny", testTypeAny)
+      , ("testTypeOptionalAny", testTypeOptionalAny)
+      , ("testTypeSelf", testTypeSelf)
+      , ("testTypeSingleTupleInt", testTypeSingleTupleInt)
+      , ("testTypeStringArray", testTypeStringArray)
+      , ("testTypeOptionalStringArray", testTypeOptionalStringArray)
+      , ("testTypeIntArrayArray", testTypeIntArrayArray)
+      , ("testTypeIntDoubleDict", testTypeIntDoubleDict)
+      , ("testTypeIntDoubleArrayDict", testTypeIntDoubleArrayDict)
+      , ("testTypeIntBoolTuple", testTypeIntBoolTuple)
+      , ("testTypeStringStringTupleIntArrayTuple", testTypeStringStringTupleIntArrayTuple)
+      , ("testTypeIntIntIntStringTuple", testTypeIntIntIntStringTuple)
+      , ("testTypeEmptyFunc", testTypeEmptyFunc)
    ]
 }
