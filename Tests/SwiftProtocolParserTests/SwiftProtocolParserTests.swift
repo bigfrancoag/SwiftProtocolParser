@@ -426,6 +426,19 @@ class SwiftProtocolParserTests: XCTestCase {
       XCTAssertEqual(result[0].remaining, " test stuff")
    }
 
+   func testTypeString() {
+      let s = "String test"
+print("s=\(s)")
+      let sut = SwiftProtocolParser.type
+print("sut=\(sut)")
+      let result = sut.run(on: s)
+print("result=\(result)")
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "String")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
    func testLinuxTestSuiteIncludesAllTests() {
 #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
       let thisClass = type(of: self)
@@ -475,5 +488,6 @@ class SwiftProtocolParserTests: XCTestCase {
       , ("testAccessModifierList_valid_returns_modifier", testAccessModifierList_valid_returns_modifier)
       , ("testTypeAccessModifier_invalid_returns_internal", testTypeAccessModifier_invalid_returns_internal)
       , ("testTypeAccessModifier_valid_returns_modifier", testTypeAccessModifier_valid_returns_modifier)
+      , ("testTypeString", testTypeString)
    ]
 }

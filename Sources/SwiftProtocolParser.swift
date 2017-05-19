@@ -185,20 +185,20 @@ public enum SwiftProtocolParser {
    static let typeName = identifier
    static let anyType = anyKeyword
    static let selfType = selfKeyword
-   static let singleTupleType = openParens *> embeddedType() <* closeParens
-   static let arrayType = curry { _, t, _ in "[\(t)]" } <^> openSquare <*> embeddedType() <*> closeSquare
+   static let singleTupleType = openParens *> type <* closeParens
+   static let arrayType = curry { _, t, _ in "[\(t)]" } <^> openSquare <*> type <*> closeSquare
    static let dictType = curry { _, k, _, v, _ in "[\(k):\(v)]" }
       <^> openSquare
-      <*> embeddedType()
+      <*> type
       <*> colon
-      <*> embeddedType()
+      <*> type
       <*> closeSquare
 
-   static let optType = curry { t, _ in "\(t)?" } <^> embeddedType() <*> questionMark
-   static let iuoType = curry { t, _ in "\(t)!" } <^> embeddedType() <*> bang
+   static let optType = curry { t, _ in "\(t)?" } <^> type <*> questionMark
+   static let iuoType = curry { t, _ in "\(t)!" } <^> type <*> bang
 
    static let funcArgsNoParams = openParens *> Parser(pure: "()") <* closeParens
-   static let labeledArg = curry { name, t in "\(name)\(t)" } <^> identifier <*> typeAnnotationClause
+   static let labeledArg = curry { name, t in "\(name)\(t)" } <^> identifier <*> Parser(lazy: typeAnnotationClause)
    static let funcArg = typeAnnotation <|> labeledArg
    static let funcArgsList = funcArg.separatedBy(some: comma).map { $0.joined(separator: ", ") }
    static let funcArgParams = curry { args, ellipsis in "\(args)\(ellipsis)" } <^> funcArgsList <*> optionalEllipsis
@@ -210,10 +210,10 @@ public enum SwiftProtocolParser {
       <*> funcArguments
       <*> optionalThrows
       <*> arrowOperator
-      <*> embeddedType()
+      <*> type
 
    static let tupleElementName = identifier
-   static let tupleElement = (curry { name, t in "\(name)\(t)" } <^> tupleElementName <*> typeAnnotationClause) <|> embeddedType()
+   static let tupleElement = (curry { name, t in "\(name)\(t)" } <^> tupleElementName <*> typeAnnotationClause) <|> type
    static let tupleElements = tupleElement.separatedBy(some: comma).map { $0.joined(separator: ", ") }
    static let nonEmptyTuple = openParens *> tupleElements <* closeParens
    static let emptyTuple = openParens *> Parser(pure: "()") <* closeParens
@@ -222,28 +222,24 @@ public enum SwiftProtocolParser {
    static let protocolIdentifier = typeIdentifier()
    static let protocolCompositionType = protocolIdentifier.separatedBy(some: ampersand).map { xs in xs.joined(separator: " & ") }
 
-   static let type = (
-      typeName
-      <|> anyType
-      <|> selfType
-      <|> singleTupleType
-      <|> arrayType
-      <|> dictType
-      <|> optType
-      <|> iuoType
-      <|> functionType
-      <|> tupleType
-      <|> protocolCompositionType
-   ).token()
-
-   static func embeddedType() -> Parser<String> {
-      return type
-   }
+   static let type: Parser<String> = Parser(lazy: (
+      Parser(lazy: typeName)
+      <|> Parser(lazy: anyType)
+      <|> Parser(lazy: selfType)
+      <|> Parser(lazy: singleTupleType)
+      <|> Parser(lazy: arrayType)
+      <|> Parser(lazy: dictType)
+      <|> Parser(lazy: optType)
+      <|> Parser(lazy: iuoType)
+      <|> Parser(lazy: functionType)
+      <|> Parser(lazy: tupleType)
+      <|> Parser(lazy: protocolCompositionType)
+   ).token())
 
    static let typeAnnotation = curry { attrs, inOut, t in "\(attrs)\(inOut)\(t)" }
       <^> optionalAttributesString
       <*> optionalInout
-      <*> embeddedType()
+      <*> type
 
    static let typeAnnotationClause = curry { _, t in ": \(t)" } <^> colon <*> typeAnnotation
 
