@@ -749,6 +749,99 @@ class SwiftProtocolParserTests: XCTestCase {
       XCTAssertEqual(result[0].remaining, " test")
    }
 
+   func testTypeMultiPartIdentifier() {
+      let s = "Iterator.Element test"
+
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "Iterator.Element")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeAnnotationFull() {
+      let s = "@blah inout String test"
+
+      let sut = SwiftProtocolParser.typeAnnotation
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "@blah inout String")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeAnnotationAttribute() {
+      let s = "@blah String test"
+
+      let sut = SwiftProtocolParser.typeAnnotation
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "@blah String")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeAnnotationInout() {
+      let s = "inout String test"
+
+      let sut = SwiftProtocolParser.typeAnnotation
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "inout String")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeAnnotationSimple() {
+      let s = "String test"
+
+      let sut = SwiftProtocolParser.typeAnnotation
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "String")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeAnnotationClauseInvalid() {
+      let s = "String test"
+
+      let sut = SwiftProtocolParser.typeAnnotationClause
+
+      let result = sut.run(on: s)
+      XCTAssertTrue(result.isEmpty)
+   }
+
+   func testTypeAnnotationClauseLeadingSpace() {
+      let s = " : String test"
+
+      let sut = SwiftProtocolParser.typeAnnotationClause
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, ": String")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeAnnotationClause() {
+      let s = ":String test"
+
+      let sut = SwiftProtocolParser.typeAnnotationClause
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, ": String")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
    func testLinuxTestSuiteIncludesAllTests() {
 #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
       let thisClass = type(of: self)
@@ -825,5 +918,14 @@ class SwiftProtocolParserTests: XCTestCase {
       , ("testTypeArrayGeneric", testTypeArrayGeneric)
       , ("testTypeDictGeneric", testTypeDictGeneric)
       , ("testTypeProtocolComposition", testTypeProtocolComposition)
+      , ("testTypeMultiPartIdentifier", testTypeMultiPartIdentifier)
+      , ("testTypeAnnotationFull", testTypeAnnotationFull)
+      , ("testTypeAnnotationAttribute", testTypeAnnotationAttribute)
+      , ("testTypeAnnotationInout", testTypeAnnotationInout)
+      , ("testTypeAnnotationSimple", testTypeAnnotationSimple)
+      , ("testTypeAnnotationClause", testTypeAnnotationClause)
+      , ("testTypeAnnotationClauseInvalid", testTypeAnnotationClauseInvalid)
+      , ("testTypeAnnotationClauseLeadingSpace", testTypeAnnotationClauseLeadingSpace)
+
    ]
 }

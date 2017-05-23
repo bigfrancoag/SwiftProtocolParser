@@ -251,7 +251,7 @@ public enum SwiftProtocolParser {
       <*> optionalInout
       <*> type
 
-   static let typeAnnotationClause = curry { _, t in ": \(t)" } <^> colon <*> typeAnnotation
+   static let typeAnnotationClause = (curry { _, t in ": \(t)" } <^> colon <*> typeAnnotation.token()).token()
 
    static let genericArg = type
    static let genericArgumentsList = genericArg.separatedBy(some: comma).map { $0.joined(separator: ", ") }
@@ -259,7 +259,7 @@ public enum SwiftProtocolParser {
    static let typeIdentifierPart = (curry { name, genArgs in "\(name)\(genArgs)" } <^>  typeName <*> orEmpty(genericArgumentsClause.?)).token()
 
    static let typeIdentifier = Parser(lazy: typeIdentifierPart.separatedBy(period).map { $0.joined(separator: ".") })
-
+//TODO: Continue tests here
    static let protocolList = typeIdentifier.separatedBy(some: comma).map { xs in xs.map { Inheritance.protocolRequirement($0) } }
 
    static let classInheritance = colon *> classKeyword.map { _ in [Inheritance.classRequirement] }
