@@ -620,13 +620,132 @@ class SwiftProtocolParserTests: XCTestCase {
 
    func testTypeEmptyFunc() {
       let s = "() -> () test"
-
       let sut = SwiftProtocolParser.type
 
       let result = sut.run(on: s)
       XCTAssertFalse(result.isEmpty)
       XCTAssertEqual(result.count, 1)
       XCTAssertEqual(result[0].result, "() -> ()")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeSupplierFunc() {
+      let s = "()-> String test"
+
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "() -> String")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeConsumerFunc() {
+      let s = "(Int) -> () test"
+
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "(Int) -> ()")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeBasicFunc() {
+      let s = "(Bool) -> String test"
+
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "(Bool) -> String")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeFuncInToStringFunc() {
+      let s = "((String) -> Bool) -> Int test"
+
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "((String) -> Bool) -> Int")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeIntToFuncFunc() {
+      let s = "(Int) -> ((Bool) -> String) test"
+
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "(Int) -> ((Bool) -> String)")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeIntToCurriedFunc() {
+      let s = "(Int) -> (Bool) -> String test"
+
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "(Int) -> (Bool) -> String")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeIntBoolStringBiFunc() {
+      let s = "(Int,Bool) -> String test"
+
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "(Int, Bool) -> String")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeArrayGeneric() {
+      let s = "Array<String> test"
+
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "Array<String>")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeDictGeneric() {
+      let s = "Dictionary<String, Int> test"
+
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "Dictionary<String, Int>")
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testTypeProtocolComposition() {
+      let s = "Hashable & RawRepresentable test"
+
+      let sut = SwiftProtocolParser.type
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      XCTAssertEqual(result[0].result, "Hashable & RawRepresentable")
       XCTAssertEqual(result[0].remaining, " test")
    }
 
@@ -696,5 +815,15 @@ class SwiftProtocolParserTests: XCTestCase {
       , ("testTypeStringStringTupleIntArrayTuple", testTypeStringStringTupleIntArrayTuple)
       , ("testTypeIntIntIntStringTuple", testTypeIntIntIntStringTuple)
       , ("testTypeEmptyFunc", testTypeEmptyFunc)
+      , ("testTypeSupplierFunc", testTypeSupplierFunc)
+      , ("testTypeConsumerFunc", testTypeConsumerFunc)
+      , ("testTypeBasicFunc", testTypeBasicFunc)
+      , ("testTypeFuncInToStringFunc", testTypeFuncInToStringFunc)
+      , ("testTypeIntToFuncFunc", testTypeIntToFuncFunc)
+      , ("testTypeIntToCurriedFunc", testTypeIntToCurriedFunc)
+      , ("testTypeIntBoolStringBiFunc", testTypeIntBoolStringBiFunc)
+      , ("testTypeArrayGeneric", testTypeArrayGeneric)
+      , ("testTypeDictGeneric", testTypeDictGeneric)
+      , ("testTypeProtocolComposition", testTypeProtocolComposition)
    ]
 }

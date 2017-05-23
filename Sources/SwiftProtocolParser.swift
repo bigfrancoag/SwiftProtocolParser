@@ -212,7 +212,7 @@ public enum SwiftProtocolParser {
    static let funcArg = typeAnnotation <|> labeledArg
    static let funcArgsList = funcArg.separatedBy(some: comma).map { $0.joined(separator: ", ") }
    static let funcArgParams = curry { args, ellipsis in "\(args)\(ellipsis)" } <^> funcArgsList <*> optionalEllipsis
-   static let funcArgsWithParams = openParens *> funcArgParams <* closeParens.map { "(\($0))" }
+   static let funcArgsWithParams = (openParens *> funcArgParams <* closeParens).map { "(\($0))" }
    static let funcArguments = funcArgsNoParams <|> funcArgsWithParams
    static let optionalThrows = padRight((throwsKeyword <|> rethrowsKeyword).?)
    static let functionType = curry { attrs, args, thrws, _, t in "\(attrs)\(args)\(thrws) -> \(t)" }
@@ -230,20 +230,20 @@ public enum SwiftProtocolParser {
    static let emptyTuple = (openParens *> Parser(pure: "()") <* closeParens)
    static let tupleType = (emptyTuple <|> nonEmptyTuple)
 
-   static let protocolIdentifier = typeIdentifier()
-   static let protocolCompositionType = protocolIdentifier.separatedBy(some: ampersand).map { xs in xs.joined(separator: " & ") }
+   static let protocolIdentifier = typeIdentifier
+   static let protocolCompositionType = protocolIdentifier.separatedBy(ampersand).map { xs in xs.joined(separator: " & ") }
 
    static let type: Parser<String> = Parser(lazy: (
-      Parser(lazy: optType)
+      Parser(lazy: functionType)
+      <|> Parser(lazy: optType)
       <|> Parser(lazy: anyType)
       <|> Parser(lazy: selfType)
-      <|> Parser(lazy: typeName)
       <|> Parser(lazy: arrayType)
       <|> Parser(lazy: dictType)
       <|> Parser(lazy: singleTupleType)
-      <|> Parser(lazy: functionType)
       <|> Parser(lazy: tupleType)
       <|> Parser(lazy: protocolCompositionType)
+      <|> Parser(lazy: typeIdentifierPart)
    ).token())
 
    static let typeAnnotation = curry { attrs, inOut, t in "\(attrs)\(inOut)\(t)" }
@@ -256,13 +256,11 @@ public enum SwiftProtocolParser {
    static let genericArg = type
    static let genericArgumentsList = genericArg.separatedBy(some: comma).map { $0.joined(separator: ", ") }
    static let genericArgumentsClause = (openAngle *> genericArgumentsList <* closeAngle).map { "<\($0)>" }
-   static let typeIdentifierPart = curry { name, genArgs in "\(name)\(genArgs)" } <^>  typeName <*> orEmpty(genericArgumentsClause.?)
+   static let typeIdentifierPart = (curry { name, genArgs in "\(name)\(genArgs)" } <^>  typeName <*> orEmpty(genericArgumentsClause.?)).token()
 
-   static func typeIdentifier() -> Parser<String> {
-      return typeIdentifierPart.separatedBy(some: period).map { $0.joined(separator: ".") }
-   }
+   static let typeIdentifier = Parser(lazy: typeIdentifierPart.separatedBy(period).map { $0.joined(separator: ".") })
 
-   static let protocolList = typeIdentifier().separatedBy(some: comma).map { xs in xs.map { Inheritance.protocolRequirement($0) } }
+   static let protocolList = typeIdentifier.separatedBy(some: comma).map { xs in xs.map { Inheritance.protocolRequirement($0) } }
 
    static let classInheritance = colon *> classKeyword.map { _ in [Inheritance.classRequirement] }
    static let protocolListInheritance = colon *> protocolList
@@ -332,7 +330,7 @@ public enum SwiftProtocolParser {
 
    //TODO:
    static let protocolMember: Parser<ProtocolMember> = propertyProtocolMember <|> methodProtocolMember
-   static let protocolBlock: Parser<[ProtocolMember]> = openBlock *> protocolMember.separatedBy(statementSeparator) <* closeBlock
+   static let protocolBlock: Parser<[ProtocolMember]> = openBlock *> protocolMember.separatedBy(some: statementSeparator) <* closeBlock
 
    static let protocolDeclaration = curry { attrs, optModifier, _, xs, members in ProtocolDeclaration(attributes: attrs, accessModifier: optModifier, inheritance: xs, members: members) }
       <^> attribute.many()
