@@ -384,7 +384,7 @@ class SwiftProtocolParserTests: XCTestCase {
    func testAccessModifierList_invalid_returns_empty() {
       let s = "test"
 
-      let sut = SwiftProtocolParser.accessModifierList
+      let sut = SwiftProtocolParser.accessModifiers
 
       let result = sut.run(on: s)
       XCTAssertTrue(result.isEmpty)
@@ -393,7 +393,7 @@ class SwiftProtocolParserTests: XCTestCase {
    func testAccessModifierList_valid_returns_modifier() {
       let s = "public stuff"
 
-      let sut = SwiftProtocolParser.accessModifierList
+      let sut = SwiftProtocolParser.accessModifiers
 
       let result = sut.run(on: s)
       XCTAssertFalse(result.isEmpty)
@@ -842,6 +842,98 @@ class SwiftProtocolParserTests: XCTestCase {
       XCTAssertEqual(result[0].remaining, " test")
    }
 
+   func testInheritanceListClass() {
+      let s = ":class test"
+
+      let sut = SwiftProtocolParser.inheritanceList
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertEqual(result[0].result.count, 1)
+      guard result[0].result.count == 1 else { return }
+      XCTAssertEqual(result[0].result[0], .classRequirement)
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testInheritanceListSimple() {
+      let s = ":Equatable test"
+
+      let sut = SwiftProtocolParser.inheritanceList
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertEqual(result[0].result.count, 1)
+      guard result[0].result.count == 1 else { return }
+      XCTAssertEqual(result[0].result[0], .protocolRequirement("Equatable"))
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testInheritanceListMulti() {
+      let s = ":Equatable, Hashable test"
+
+      let sut = SwiftProtocolParser.inheritanceList
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertEqual(result[0].result.count, 2)
+      guard result[0].result.count == 2 else { return }
+      XCTAssertEqual(result[0].result[0], .protocolRequirement("Equatable"))
+      XCTAssertEqual(result[0].result[1], .protocolRequirement("Hashable"))
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testInheritanceListMixedSimple() {
+      let s = ":class, Equatable test"
+
+      let sut = SwiftProtocolParser.inheritanceList
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertEqual(result[0].result.count, 2)
+      guard result[0].result.count == 2 else { return }
+      XCTAssertEqual(result[0].result[0], .classRequirement)
+      XCTAssertEqual(result[0].result[1], .protocolRequirement("Equatable"))
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testInheritanceListMixedMulti() {
+      let s = ":class, Equatable, Hashable test"
+
+      let sut = SwiftProtocolParser.inheritanceList
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertEqual(result[0].result.count, 3)
+      guard result[0].result.count == 3 else { return }
+      XCTAssertEqual(result[0].result[0], .classRequirement)
+      XCTAssertEqual(result[0].result[1], .protocolRequirement("Equatable"))
+      XCTAssertEqual(result[0].result[2], .protocolRequirement("Hashable"))
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testOptionalModifier() {
+      let s = " optional test"
+
+      let sut = SwiftProtocolParser.optionalModifier
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertTrue(result[0].result == DeclarationModifier.isOptional)
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
    func testLinuxTestSuiteIncludesAllTests() {
 #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
       let thisClass = type(of: self)
@@ -926,6 +1018,11 @@ class SwiftProtocolParserTests: XCTestCase {
       , ("testTypeAnnotationClause", testTypeAnnotationClause)
       , ("testTypeAnnotationClauseInvalid", testTypeAnnotationClauseInvalid)
       , ("testTypeAnnotationClauseLeadingSpace", testTypeAnnotationClauseLeadingSpace)
-
+      , ("testInheritanceListClass", testInheritanceListClass)
+      , ("testInheritanceListSimple", testInheritanceListSimple)
+      , ("testInheritanceListMulti", testInheritanceListMulti)
+      , ("testInheritanceListMixedSimple", testInheritanceListMixedSimple)
+      , ("testInheritanceListMixedMulti", testInheritanceListMixedMulti)
+      , ("testOptionalModifier", testOptionalModifier)
    ]
 }

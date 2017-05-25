@@ -190,8 +190,8 @@ public enum SwiftProtocolParser {
    static let optionalAttributesString = rawAttribute.many().map { xs in xs.map {"@\($0.name)\($0.args)" }.joined(separator: " ") }.map { $0.isEmpty ? "" : $0 + " " }
    static let attribute = rawAttribute.map { Attribute(name: $0.name, argumentsClause: $0.args) } 
 
-   static let accessModifierList = publicKeyword <|> privateKeyword <|> fileprivateKeyword <|> internalKeyword <|> openKeyword 
-   static let typeAccessModifier = ((accessModifierList <|> Parser(pure: "internal")).token()).map { AccessModifier(rawValue: $0)! }
+   static let accessModifiers = publicKeyword <|> privateKeyword <|> fileprivateKeyword <|> internalKeyword <|> openKeyword 
+   static let typeAccessModifier = ((accessModifiers <|> Parser(pure: "internal")).token()).map { AccessModifier(rawValue: $0)! }
 
    static let typeName = identifier
    static let anyType = anyKeyword
@@ -259,21 +259,22 @@ public enum SwiftProtocolParser {
    static let typeIdentifierPart = (curry { name, genArgs in "\(name)\(genArgs)" } <^>  typeName <*> orEmpty(genericArgumentsClause.?)).token()
 
    static let typeIdentifier = Parser(lazy: typeIdentifierPart.separatedBy(period).map { $0.joined(separator: ".") })
-//TODO: Continue tests here
    static let protocolList = typeIdentifier.separatedBy(some: comma).map { xs in xs.map { Inheritance.protocolRequirement($0) } }
 
    static let classInheritance = colon *> classKeyword.map { _ in [Inheritance.classRequirement] }
    static let protocolListInheritance = colon *> protocolList
-   static let inheritanceList = classInheritance 
+   static let inheritanceList =  { xs in { xs + $0 } } <^> classInheritance <*> (comma *> protocolList)
+      <|> classInheritance
       <|> protocolListInheritance 
-      <|> { xs in { xs + $0 } } <^> classInheritance <*> (comma *> protocolList)
+      <|> Parser(pure: [])
 
+//TODO: Continue tests here
    static let optionalModifier = optionalKeyword.map { _ in DeclarationModifier.isOptional }
    static let mutationModifier = mutationKeyword.map { _ in DeclarationModifier.isMutation }
    static let nonmutationModifier = nonmutationKeyword.map { _ in DeclarationModifier.isNonmutation }
-   static let accessModifierListMapped: Parser<AccessModifier> = accessModifierList.map { AccessModifier(rawValue: $0)! } 
+   static let accessModifiersMapped: Parser<AccessModifier> = accessModifiers.map { AccessModifier(rawValue: $0)! } 
    static let memberAccessModifier = curry { (access: AccessModifier, setter: String?) in setter.map { _ in DeclarationModifier.setterAccess(access) } ?? .access(access) }
-      <^> accessModifierListMapped
+      <^> accessModifiersMapped
       <*> (openParens *> setKeyword <* closeParens).?
 
    static let staticModifier = staticKeyword.map { _ in DeclarationModifier.isStatic }
@@ -299,7 +300,7 @@ public enum SwiftProtocolParser {
       <*> getterSetterClause
 
    static let propertyProtocolMember = propertyMember.map { ProtocolMember.property($0) }
-   static let methodAccessModifier = accessModifierListMapped.map { DeclarationModifier.access($0) }
+   static let methodAccessModifier = accessModifiersMapped.map { DeclarationModifier.access($0) }
    static let methodDeclarationModifiers = (optionalModifier <|> mutationModifier <|> nonmutationModifier <|> methodAccessModifier <|> staticModifier).many()
    static let functionHead: Parser<(attributes: [Attribute], modifiers: [DeclarationModifier])> = curry { attrs, mods, _ in (attributes: attrs, modifiers: mods) } <^> attribute.many() <*> methodDeclarationModifiers <*> funcKeyword
    static let operatorHead = anyChar(from: operatorHeadCharString())
