@@ -5,3 +5,9 @@ public enum AccessModifier : String {
    case internalAccess = "internal"
    case openAccess = "open"
 }
+
+extension AccessModifier : Equatable {
+   public static func == (lhs: AccessModifier, rhs: AccessModifier) -> Bool {
+      return lhs.rawValue == rhs.rawValue
+   }
+}

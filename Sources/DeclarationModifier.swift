@@ -8,7 +8,7 @@ public enum DeclarationModifier {
 }
 
 extension DeclarationModifier {
-   static func == (lhs: DeclarationModifier, rhs: DeclarationModifier) -> Bool {
+   public static func == (lhs: DeclarationModifier, rhs: DeclarationModifier) -> Bool {
       switch (lhs, rhs) {
          case (.isOptional, .isOptional): fallthrough
          case (.isMutation, .isMutation): fallthrough
@@ -16,10 +16,10 @@ extension DeclarationModifier {
          case (.isStatic, .isStatic):
             return true 
 
-         case let (.access(l), .access(r)) where l.rawValue == r.rawValue:
+         case let (.access(l), .access(r)) where l == r:
             return true
    
-         case let (.setterAccess(l), .setterAccess(r)) where l.rawValue == r.rawValue:
+         case let (.setterAccess(l), .setterAccess(r)) where l == r:
             return true
 
          default:

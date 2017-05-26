@@ -934,6 +934,45 @@ class SwiftProtocolParserTests: XCTestCase {
       XCTAssertEqual(result[0].remaining, " test")
    }
 
+   func testAccessModifiersMappedSimple() {
+      let s = "public test"
+
+      let sut = SwiftProtocolParser.accessModifiersMapped
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertTrue(result[0].result == AccessModifier.publicAccess)
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testMemberAccessModifiersMappedSimple() {
+      let s = "fileprivate test"
+
+      let sut = SwiftProtocolParser.memberAccessModifier
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertTrue(result[0].result == DeclarationModifier.access(.fileprivateAccess))
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
+   func testMemberAccessModifiersMappedSetter() {
+      let s = "private(set) test"
+
+      let sut = SwiftProtocolParser.memberAccessModifier
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertTrue(result[0].result == DeclarationModifier.setterAccess(.privateAccess))
+      XCTAssertEqual(result[0].remaining, " test")
+   }
+
    func testLinuxTestSuiteIncludesAllTests() {
 #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
       let thisClass = type(of: self)
@@ -1024,5 +1063,8 @@ class SwiftProtocolParserTests: XCTestCase {
       , ("testInheritanceListMixedSimple", testInheritanceListMixedSimple)
       , ("testInheritanceListMixedMulti", testInheritanceListMixedMulti)
       , ("testOptionalModifier", testOptionalModifier)
+      , ("testAccessModifiersMappedSimple", testAccessModifiersMappedSimple)
+      , ("testMemberAccessModifiersMappedSimple", testMemberAccessModifiersMappedSimple)
+      , ("testMemberAccessModifiersMappedSetter", testMemberAccessModifiersMappedSetter)
    ]
 }
