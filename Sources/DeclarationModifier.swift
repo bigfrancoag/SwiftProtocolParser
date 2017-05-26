@@ -2,8 +2,8 @@ public enum DeclarationModifier {
    case access(AccessModifier)
    case setterAccess(AccessModifier)
    case isOptional
-   case isMutation
-   case isNonmutation
+   case isMutating
+   case isNonmutating
    case isStatic
 }
 
@@ -11,8 +11,8 @@ extension DeclarationModifier {
    public static func == (lhs: DeclarationModifier, rhs: DeclarationModifier) -> Bool {
       switch (lhs, rhs) {
          case (.isOptional, .isOptional): fallthrough
-         case (.isMutation, .isMutation): fallthrough
-         case (.isNonmutation, .isNonmutation): fallthrough
+         case (.isMutating, .isMutating): fallthrough
+         case (.isNonmutating, .isNonmutating): fallthrough
          case (.isStatic, .isStatic):
             return true 
 

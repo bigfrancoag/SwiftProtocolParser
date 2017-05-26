@@ -973,6 +973,60 @@ class SwiftProtocolParserTests: XCTestCase {
       XCTAssertEqual(result[0].remaining, " test")
    }
 
+   func testPropertyDeclarationModifiers_Optional() {
+      let s = "optional test"
+
+      let sut = SwiftProtocolParser.propertyDeclarationModifiers
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertEqual(result[0].remaining, " test")
+
+      var modifiers = result[0].result
+      XCTAssertEqual(modifiers.count, 1)
+      guard modifiers.count == 1 else { return }
+      XCTAssertTrue(modifiers[0] == DeclarationModifier.isOptional)
+   }
+
+   func testPropertyDeclarationModifiers_publicMutating() {
+      let s = "public mutating test"
+
+      let sut = SwiftProtocolParser.propertyDeclarationModifiers
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertEqual(result[0].remaining, " test")
+
+      var modifiers = result[0].result
+      XCTAssertEqual(modifiers.count, 2)
+      guard modifiers.count == 2 else { return }
+      XCTAssertTrue(modifiers[0] == DeclarationModifier.access(.publicAccess))
+      XCTAssertTrue(modifiers[1] == DeclarationModifier.isMutating)
+   }
+
+   func testPropertyDeclarationModifiers_fileprivateStaticNonmutating() {
+      let s = "fileprivate static nonmutating test"
+
+      let sut = SwiftProtocolParser.propertyDeclarationModifiers
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertEqual(result[0].remaining, " test")
+
+      var modifiers = result[0].result
+      XCTAssertEqual(modifiers.count, 3)
+      guard modifiers.count == 3 else { return }
+      XCTAssertTrue(modifiers[0] == DeclarationModifier.access(.fileprivateAccess))
+      XCTAssertTrue(modifiers[1] == DeclarationModifier.isStatic)
+      XCTAssertTrue(modifiers[2] == DeclarationModifier.isNonmutating)
+   }
+
    func testLinuxTestSuiteIncludesAllTests() {
 #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
       let thisClass = type(of: self)
@@ -1066,5 +1120,8 @@ class SwiftProtocolParserTests: XCTestCase {
       , ("testAccessModifiersMappedSimple", testAccessModifiersMappedSimple)
       , ("testMemberAccessModifiersMappedSimple", testMemberAccessModifiersMappedSimple)
       , ("testMemberAccessModifiersMappedSetter", testMemberAccessModifiersMappedSetter)
+      , ("testPropertyDeclarationModifiers_Optional", testPropertyDeclarationModifiers_Optional)
+      , ("testPropertyDeclarationModifiers_publicMutating", testPropertyDeclarationModifiers_publicMutating)
+      , ("testPropertyDeclarationModifiers_fileprivateStaticNonmutating", testPropertyDeclarationModifiers_fileprivateStaticNonmutating)
    ]
 }
