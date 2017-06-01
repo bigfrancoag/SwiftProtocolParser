@@ -279,14 +279,13 @@ public enum SwiftProtocolParser {
    static let staticModifier = staticKeyword.map { _ in DeclarationModifier.isStatic }
 
    static let propertyDeclarationModifiers = (optionalModifier <|> mutatingModifier <|> nonmutatingModifier <|> memberAccessModifier <|> staticModifier).*
-//TODO: Continue tests here
    static let variableDeclarationHead: Parser<(attributes: [Attribute], modifiers: [DeclarationModifier])> = curry { attrs, mods in (attributes: attrs, modifiers: mods) }
       <^> attribute.*
       <*> (propertyDeclarationModifiers <* varKeyword)
 
    static let variableName = identifier
-   static let getterClause = curry { attrs, muts, getter in "\(attrs)\(muts)\(getter)" } <^> optionalAttributesString <*> orEmpty((mutatingKeyword <|> nonmutatingKeyword).?) <*> getKeyword
-   static let setterClause = curry { attrs, muts, setter in "\(attrs)\(muts)\(setter)" } <^> optionalAttributesString <*> orEmpty((mutatingKeyword <|> nonmutatingKeyword).?) <*> setKeyword
+   static let getterClause = curry { attrs, muts, getter in "\(attrs)\(muts)\(getter)" } <^> optionalAttributesString <*> padRight((mutatingKeyword <|> nonmutatingKeyword).?) <*> getKeyword
+   static let setterClause = curry { attrs, muts, setter in "\(attrs)\(muts)\(setter)" } <^> optionalAttributesString <*> padRight((mutatingKeyword <|> nonmutatingKeyword).?) <*> setKeyword
    static let setterThanGetter = curry { setter, getter in (getter: getter, setter: setter) } <^> setterClause <*> getterClause 
    static let setterThanGetterClause = openBlock *> setterThanGetter <* closeBlock
    static let getterThanSetter = curry { getter, setter in (getter: getter, setter: setter) } <^> getterClause <*> orEmpty(setterClause.?)
@@ -300,8 +299,10 @@ public enum SwiftProtocolParser {
       <*> getterSetterClause
 
    static let propertyProtocolMember = propertyMember.map { ProtocolMember.property($0) }
+
    static let methodAccessModifier = accessModifiersMapped.map { DeclarationModifier.access($0) }
-   static let methodDeclarationModifiers = (optionalModifier <|> mutatingModifier <|> nonmutatingModifier <|> methodAccessModifier <|> staticModifier).many()
+   static let methodDeclarationModifiers = (optionalModifier <|> mutatingModifier <|> nonmutatingModifier <|> methodAccessModifier <|> staticModifier).*
+//TODO: Continue tests here
    static let functionHead: Parser<(attributes: [Attribute], modifiers: [DeclarationModifier])> = curry { attrs, mods, _ in (attributes: attrs, modifiers: mods) } <^> attribute.many() <*> methodDeclarationModifiers <*> funcKeyword
    static let operatorHead = anyChar(from: operatorHeadCharString())
    static let operatorChar = operatorHead //TODO: add unicode chars

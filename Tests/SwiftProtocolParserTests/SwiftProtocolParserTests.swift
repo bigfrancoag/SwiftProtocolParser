@@ -1027,6 +1027,276 @@ class SwiftProtocolParserTests: XCTestCase {
       XCTAssertTrue(modifiers[2] == DeclarationModifier.isNonmutating)
    }
 
+   func testVariableDecarationHeadAttributes() {
+      let s = "@lazy var test"
+
+      let sut = SwiftProtocolParser.variableDeclarationHead
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertEqual(result[0].remaining, " test")
+      let parsed = result[0].result
+      XCTAssertEqual(parsed.attributes.count, 1)
+      guard parsed.attributes.count == 1 else { return }
+      XCTAssertEqual(parsed.attributes[0].name, "lazy")
+      XCTAssertEqual(parsed.attributes[0].argumentsClause, "")
+      XCTAssertEqual(parsed.modifiers.count, 0)
+   }
+
+   func testVariableDecarationHeadModifiers() {
+      let s = "fileprivate var test"
+
+      let sut = SwiftProtocolParser.variableDeclarationHead
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertEqual(result[0].remaining, " test")
+      let parsed = result[0].result
+      XCTAssertEqual(parsed.attributes.count, 0)
+      XCTAssertEqual(parsed.modifiers.count, 1)
+      guard parsed.modifiers.count == 1 else { return }
+      XCTAssertTrue(parsed.modifiers[0] == DeclarationModifier.access(.fileprivateAccess))
+   }
+
+   func testVariableDecarationHeadAttributesModifiers() {
+      let s = "@lazy static private(set) var test"
+
+      let sut = SwiftProtocolParser.variableDeclarationHead
+
+      let result = sut.run(on: s)
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertEqual(result[0].remaining, " test")
+      let parsed = result[0].result
+      XCTAssertEqual(parsed.attributes.count, 1)
+      guard parsed.attributes.count == 1 else { return }
+      XCTAssertEqual(parsed.attributes[0].name, "lazy")
+      XCTAssertEqual(parsed.attributes[0].argumentsClause, "")
+      XCTAssertEqual(parsed.modifiers.count, 2)
+      guard parsed.modifiers.count == 2 else { return }
+      XCTAssertTrue(parsed.modifiers[0] == DeclarationModifier.isStatic)
+      XCTAssertTrue(parsed.modifiers[1] == DeclarationModifier.setterAccess(.privateAccess))
+   }
+
+   func testVariableDecarationHeadSimple() {
+      let s = " var test"
+
+      let sut = SwiftProtocolParser.variableDeclarationHead
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertEqual(result[0].remaining, " test")
+      let parsed = result[0].result
+      XCTAssertEqual(parsed.attributes.count, 0)
+      XCTAssertEqual(parsed.modifiers.count, 0)
+   }
+
+   func testGetterClauseSimple() {
+      let s = "  get   test"
+
+      let sut = SwiftProtocolParser.getterClause
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertEqual(result[0].remaining, "   test")
+      XCTAssertEqual(result[0].result, "get")
+   }
+
+   func testGetterClauseAttributes() {
+      let s = " @lazy  get   test"
+
+      let sut = SwiftProtocolParser.getterClause
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertEqual(result[0].remaining, "   test")
+      XCTAssertEqual(result[0].result, "@lazy get")
+   }
+
+   func testGetterClauseMutating() {
+      let s = "mutating  get   test"
+
+      let sut = SwiftProtocolParser.getterClause
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertEqual(result[0].remaining, "   test")
+      XCTAssertEqual(result[0].result, "mutating get")
+   }
+
+   func testGetterClauseAttributesMutating() {
+      let s = " @lazy  @attr   nonmutating  get   test"
+
+      let sut = SwiftProtocolParser.getterClause
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertEqual(result[0].remaining, "   test")
+      XCTAssertEqual(result[0].result, "@lazy @attr nonmutating get")
+   }
+
+   func testSetterClauseSimple() {
+      let s = "  set   test"
+
+      let sut = SwiftProtocolParser.setterClause
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertEqual(result[0].remaining, "   test")
+      XCTAssertEqual(result[0].result, "set")
+   }
+
+   func testSetterClauseAttributes() {
+      let s = " @lazy  set   test"
+
+      let sut = SwiftProtocolParser.setterClause
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertEqual(result[0].remaining, "   test")
+      XCTAssertEqual(result[0].result, "@lazy set")
+   }
+
+   func testSetterClauseMutating() {
+      let s = "mutating  set   test"
+
+      let sut = SwiftProtocolParser.setterClause
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertEqual(result[0].remaining, "   test")
+      XCTAssertEqual(result[0].result, "mutating set")
+   }
+
+   func testSetterClauseAttributesMutating() {
+      let s = " @lazy  @attr   nonmutating  set   test"
+
+      let sut = SwiftProtocolParser.setterClause
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertEqual(result[0].remaining, "   test")
+      XCTAssertEqual(result[0].result, "@lazy @attr nonmutating set")
+   }
+
+   func testGetterSetterClauseSimpleGet() {
+      let s = " { get } test"
+
+      let sut = SwiftProtocolParser.getterSetterClause
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(result[0].result.getter, "get")
+      XCTAssertEqual(result[0].result.setter, "")
+   }
+
+   func testGetterSetterClauseGetAttributeSet() {
+      let s = " { get @lazy   set } test"
+
+      let sut = SwiftProtocolParser.getterSetterClause
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(result[0].result.getter, "get")
+      XCTAssertEqual(result[0].result.setter, "@lazy set")
+   }
+
+   func testGetterSetterClauseSetMutatingGet() {
+      let s = " { set mutating   get } test"
+
+      let sut = SwiftProtocolParser.getterSetterClause
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(result[0].result.getter, "mutating get")
+      XCTAssertEqual(result[0].result.setter, "set")
+   }
+
+   func testGetterSetterClauseSet() {
+      let s = " { set } test"
+
+      let sut = SwiftProtocolParser.getterSetterClause
+      let result = sut.run(on: s)
+
+      XCTAssertTrue(result.isEmpty)
+   }
+
+   func testPropertyMemberSimple() {
+      let s = "var name: String { get } test"
+
+      let sut = SwiftProtocolParser.propertyMember
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let prop = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(prop.attributes.count, 0)
+      XCTAssertEqual(prop.modifiers.count, 0)
+      XCTAssertEqual(prop.name, "name")
+      XCTAssertEqual(prop.type, "String")
+      XCTAssertEqual(prop.getterClause, "get")
+      XCTAssertEqual(prop.setterClause, "")
+   }
+
+   func testPropertyMemberComplex() {
+      let s = "@lazy static public private(set) var name: [String?] { get nonmutating set  } test"
+
+      let sut = SwiftProtocolParser.propertyMember
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let prop = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(prop.attributes.count, 1)
+      guard prop.attributes.count == 1 else { return }
+      XCTAssertEqual(prop.attributes[0].name, "lazy")
+      XCTAssertEqual(prop.modifiers.count, 3)
+      guard prop.attributes.count == 3 else { return }
+      XCTAssertTrue(prop.modifiers[0] == DeclarationModifier.isStatic)
+      XCTAssertTrue(prop.modifiers[1] == DeclarationModifier.access(.publicAccess))
+      XCTAssertTrue(prop.modifiers[2] == DeclarationModifier.setterAccess(.privateAccess))
+      XCTAssertEqual(prop.name, "name")
+      XCTAssertEqual(prop.type, "[String?]")
+      XCTAssertEqual(prop.getterClause, "get")
+      XCTAssertEqual(prop.setterClause, "nonmutating set")
+   }
+
    func testLinuxTestSuiteIncludesAllTests() {
 #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
       let thisClass = type(of: self)
@@ -1123,5 +1393,23 @@ class SwiftProtocolParserTests: XCTestCase {
       , ("testPropertyDeclarationModifiers_Optional", testPropertyDeclarationModifiers_Optional)
       , ("testPropertyDeclarationModifiers_publicMutating", testPropertyDeclarationModifiers_publicMutating)
       , ("testPropertyDeclarationModifiers_fileprivateStaticNonmutating", testPropertyDeclarationModifiers_fileprivateStaticNonmutating)
+      , ("testVariableDecarationHeadAttributes", testVariableDecarationHeadAttributes)
+      , ("testVariableDecarationHeadModifiers", testVariableDecarationHeadModifiers)
+      , ("testVariableDecarationHeadAttributesModifiers", testVariableDecarationHeadAttributesModifiers)
+      , ("testVariableDecarationHeadSimple", testVariableDecarationHeadSimple)
+      , ("testGetterClauseSimple", testGetterClauseSimple)
+      , ("testGetterClauseAttributes", testGetterClauseAttributes)
+      , ("testGetterClauseMutating", testGetterClauseMutating)
+      , ("testGetterClauseAttributesMutating", testGetterClauseAttributesMutating)
+      , ("testSetterClauseSimple", testSetterClauseSimple)
+      , ("testSetterClauseAttributes", testSetterClauseAttributes)
+      , ("testSetterClauseMutating", testSetterClauseMutating)
+      , ("testSetterClauseAttributesMutating", testSetterClauseAttributesMutating)
+      , ("testGetterSetterClauseSimpleGet", testGetterSetterClauseSimpleGet)
+      , ("testGetterSetterClauseGetAttributeSet", testGetterSetterClauseGetAttributeSet)
+      , ("testGetterSetterClauseSetMutatingGet", testGetterSetterClauseSetMutatingGet)
+      , ("testGetterSetterClauseSet", testGetterSetterClauseSet)
+      , ("testPropertyMemberSimple", testPropertyMemberSimple)
+      , ("testPropertyMemberComplex", testPropertyMemberComplex)
    ]
 }
