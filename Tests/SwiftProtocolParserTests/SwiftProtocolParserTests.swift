@@ -1297,6 +1297,223 @@ class SwiftProtocolParserTests: XCTestCase {
       XCTAssertEqual(prop.setterClause, "nonmutating set")
    }
 
+   func testFunctionHeadSimple() {
+      let s = "func test"
+
+      let sut = SwiftProtocolParser.functionHead
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let attrsMods = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertTrue(attrsMods.attributes.isEmpty)
+      XCTAssertTrue(attrsMods.modifiers.isEmpty)
+   }
+
+   func testFunctionHeadAttribute() {
+      let s = "@discardableResult func test"
+
+      let sut = SwiftProtocolParser.functionHead
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let attrsMods = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(attrsMods.attributes.count, 1)
+      guard attrsMods.attributes.count == 1 else { return }
+      XCTAssertEqual(attrsMods.attributes[0].name, "discardableResult")
+      XCTAssertTrue(attrsMods.modifiers.isEmpty)
+   }
+
+   func testFunctionHeadModifier() {
+      let s = "optional func test"
+
+      let sut = SwiftProtocolParser.functionHead
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let attrsMods = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertTrue(attrsMods.attributes.isEmpty)
+      XCTAssertEqual(attrsMods.modifiers.count, 1)
+      guard attrsMods.modifiers.count == 1 else { return }
+      XCTAssertTrue(attrsMods.modifiers[0] == DeclarationModifier.isOptional)
+   }
+
+   func testFunctionNameOperator() {
+      let s = " >>- test"
+
+      let sut = SwiftProtocolParser.functionName
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let name = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(name, ">>-")
+   }
+
+   func testFunctionNameDotOperator() {
+      let s = " .?? test"
+
+      let sut = SwiftProtocolParser.functionName
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let name = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(name, ".??")
+   }
+
+   func testFunctionNameIdentifier() {
+      let s = " reduce test"
+
+      let sut = SwiftProtocolParser.functionName
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let name = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(name, "reduce")
+   }
+
+   func testGenericParameterTypeName() {
+      let s = " T test"
+
+      let sut = SwiftProtocolParser.genericParameter
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let genericParam = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(genericParam, "T")
+   }
+
+   func testGenericParameterTypeNameWithIdentifier() {
+      let s = " T : Equatable test"
+
+      let sut = SwiftProtocolParser.genericParameter
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let genericParam = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(genericParam, "T : Equatable")
+   }
+
+   func testGenericParameterTypeNameWithProtocolConformance() {
+      let s = " T : Equatable & Hashable test"
+
+      let sut = SwiftProtocolParser.genericParameter
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let genericParam = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(genericParam, "T : Equatable & Hashable")
+   }
+
+   func testGenericParameterListSimple() {
+      let s = "T test"
+
+      let sut = SwiftProtocolParser.genericParameterList
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let genericParams = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(genericParams, "T")
+   }
+
+   func testGenericParameterListMulti() {
+      let s = "T,U, R test"
+
+      let sut = SwiftProtocolParser.genericParameterList
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let genericParams = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(genericParams, "T, U, R")
+   }
+
+   func testGenericParameterListComplex() {
+      let s = "T:Ordered,U, R:Equatable & Hashable test"
+
+      let sut = SwiftProtocolParser.genericParameterList
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let genericParams = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(genericParams, "T : Ordered, U, R : Equatable & Hashable")
+   }
+
+   func testOptionalGenericParameterClauseNil() {
+      let s = "test"
+
+      let sut = SwiftProtocolParser.optionalGenericParameterClause
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let genericParams = result[0].result
+      XCTAssertEqual(result[0].remaining, "test")
+      XCTAssertNil(genericParams)
+   }
+
+   func testOptionalGenericParameterClauseSimple() {
+      let s = "<T>test"
+
+      let sut = SwiftProtocolParser.optionalGenericParameterClause
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let genericParams = result[0].result
+      XCTAssertEqual(result[0].remaining, "test")
+      XCTAssertEqual(genericParams, "T")
+   }
+
+   func testOptionalGenericParameterClauseComplex() {
+      let s = "<Key:Hashable, Value>test"
+
+      let sut = SwiftProtocolParser.optionalGenericParameterClause
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let genericParams = result[0].result
+      XCTAssertEqual(result[0].remaining, "test")
+      XCTAssertEqual(genericParams, "Key : Hashable, Value")
+   }
+
    func testLinuxTestSuiteIncludesAllTests() {
 #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
       let thisClass = type(of: self)
@@ -1411,5 +1628,20 @@ class SwiftProtocolParserTests: XCTestCase {
       , ("testGetterSetterClauseSet", testGetterSetterClauseSet)
       , ("testPropertyMemberSimple", testPropertyMemberSimple)
       , ("testPropertyMemberComplex", testPropertyMemberComplex)
+      , ("testFunctionHeadSimple", testFunctionHeadSimple)
+      , ("testFunctionHeadAttribute", testFunctionHeadAttribute)
+      , ("testFunctionHeadModifier", testFunctionHeadModifier)
+      , ("testFunctionNameOperator", testFunctionNameOperator)
+      , ("testFunctionNameDotOperator", testFunctionNameDotOperator)
+      , ("testFunctionNameIdentifier", testFunctionNameIdentifier)
+      , ("testGenericParameterTypeName", testGenericParameterTypeName)
+      , ("testGenericParameterTypeNameWithIdentifier", testGenericParameterTypeNameWithIdentifier)
+      , ("testGenericParameterTypeNameWithProtocolConformance", testGenericParameterTypeNameWithProtocolConformance)
+      , ("testGenericParameterListSimple", testGenericParameterListSimple)
+      , ("testGenericParameterListMulti", testGenericParameterListMulti)
+      , ("testGenericParameterListComplex", testGenericParameterListComplex)
+      , ("testOptionalGenericParameterClauseNil", testOptionalGenericParameterClauseNil)
+      , ("testOptionalGenericParameterClauseSimple", testOptionalGenericParameterClauseSimple)
+      , ("testOptionalGenericParameterClauseComplex", testOptionalGenericParameterClauseComplex)
    ]
 }

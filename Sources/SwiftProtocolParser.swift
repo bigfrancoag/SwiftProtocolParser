@@ -302,23 +302,33 @@ public enum SwiftProtocolParser {
 
    static let methodAccessModifier = accessModifiersMapped.map { DeclarationModifier.access($0) }
    static let methodDeclarationModifiers = (optionalModifier <|> mutatingModifier <|> nonmutatingModifier <|> methodAccessModifier <|> staticModifier).*
-//TODO: Continue tests here
-   static let functionHead: Parser<(attributes: [Attribute], modifiers: [DeclarationModifier])> = curry { attrs, mods, _ in (attributes: attrs, modifiers: mods) } <^> attribute.many() <*> methodDeclarationModifiers <*> funcKeyword
+   static let functionHead: Parser<(attributes: [Attribute], modifiers: [DeclarationModifier])> = curry { attrs, mods, _ in (attributes: attrs, modifiers: mods) } <^> attribute.* <*> methodDeclarationModifiers <*> funcKeyword
    static let operatorHead = anyChar(from: operatorHeadCharString())
    static let operatorChar = operatorHead //TODO: add unicode chars
-   static let operatorName = (curry { head, rest in head + rest.joined(separator: "") } <^> operatorHead <*> operatorChar.many()).token()
+   static let operatorName = (curry { head, rest in head + rest.joined(separator: "") } <^> operatorHead <*> operatorChar.*).token()
    static let dotOperatorHead = Parsers.token(".")
    static let dotOperatorChar = dotOperatorHead <|> operatorChar
-   static let dotOperatorName = (curry { head, rest in head + rest.joined(separator: "") } <^> dotOperatorHead <*> dotOperatorChar.many()).token()
+   static let dotOperatorName = (curry { head, rest in head + rest.joined(separator: "") } <^> dotOperatorHead <*> dotOperatorChar.*).token()
    static let functionName = identifier <|> operatorName <|> dotOperatorName
 
   
-   static let genericParameter = Parser(pure: "NOT IMPLEMENTED") 
+   static let genericParameter = curry { name, type in type.map( { "\(name) : \($0)" }) ?? name }
+      <^> typeName
+      <*> (colon *> (protocolCompositionType <|> typeIdentifier)).?
+
    static let genericParameterList = genericParameter.separatedBy(some: comma).map { $0.joined(separator: ", ") }
-   //TODO: CONTINUE HERE!
    static let genericParameterClause = openAngle *> genericParameterList <* closeAngle
    static let optionalGenericParameterClause = genericParameterClause.?
-   static let functionSignature = Parser(pure: "NOT IMPLEMENTED")
+//TODO: Continue tests here
+
+   static let functionResult = arrowOperator *> type
+   static let functionParameterList = Parser(pure: "NOT IMPLEMENTED") //functionParameter.separatedBy(comma).map { $0
+   static let functionParameterClause = openParens *> functionParameterList <* closeParens
+   static let functionSignature = curry { params, throwsType, result in "" }
+      <^> functionParameterClause
+      <*> (throwsKeyword <|> rethrowsKeyword).?
+      <*> functionResult.?
+
    static let optionalGenericWhereClause = Parser(pure: "NOT IMPLEMENTED")
 
    static let methodMember: Parser<MethodMember> = curry { head, name, gens, sig, whr in MethodMember(attributes: head.attributes, modifiers: head.modifiers, name: name, genericsClause: gens, parameters: [], isThrows: false, isRethrows: false, returnType: nil, whereClause: nil) }
@@ -335,7 +345,7 @@ public enum SwiftProtocolParser {
    static let protocolBlock: Parser<[ProtocolMember]> = openBlock *> protocolMember.separatedBy(some: statementSeparator) <* closeBlock
 
    static let protocolDeclaration = curry { attrs, optModifier, _, xs, members in ProtocolDeclaration(attributes: attrs, accessModifier: optModifier, inheritance: xs, members: members) }
-      <^> attribute.many()
+      <^> attribute.*
       <*> typeAccessModifier
       <*> protocolKeyword
       <*> inheritanceList
