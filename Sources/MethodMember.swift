@@ -3,7 +3,7 @@ public struct MethodMember {
    let modifiers: [DeclarationModifier]
    let name: String
    let genericsClause: String?
-   let parameters: [(inner: String, outer: String, type: String)]
+   let parameters: [MethodParameter]
    let isThrows: Bool
    let isRethrows: Bool
    let returnType: String?

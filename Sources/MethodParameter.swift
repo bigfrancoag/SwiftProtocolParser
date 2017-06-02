@@ -13,3 +13,16 @@ public struct MethodParameter {
       self.isParams = isParams
    }
 }
+
+extension MethodParameter : Equatable {
+   public static func == (lhs: MethodParameter, rhs: MethodParameter) -> Bool {
+      guard lhs.localName == rhs.localName
+         , lhs.type == rhs.type
+         , lhs.externalName == rhs.externalName
+         , lhs.defaultClause == rhs.defaultClause
+         , lhs.isParams == rhs.isParams else {
+         return false
+      }
+      return true
+   }
+}

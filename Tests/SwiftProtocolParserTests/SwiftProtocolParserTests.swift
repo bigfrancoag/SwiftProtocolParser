@@ -1514,6 +1514,205 @@ class SwiftProtocolParserTests: XCTestCase {
       XCTAssertEqual(genericParams, "Key : Hashable, Value")
    }
 
+   func testFunctionResultNil() {
+      let s = " test"
+
+      let sut = SwiftProtocolParser.functionResult
+      let result = sut.run(on: s)
+
+      XCTAssertTrue(result.isEmpty)
+   }
+
+   func testFunctionResultSimple() {
+      let s = "-> Int test"
+
+      let sut = SwiftProtocolParser.functionResult
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let funcResult = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(funcResult, "Int")
+   }
+
+   func testFunctionResultComplex() {
+      let s = "-> (Int) -> [String:(Bool,Bool)] test"
+
+      let sut = SwiftProtocolParser.functionResult
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let funcResult = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(funcResult, "(Int) -> [String:(Bool, Bool)]")
+   }
+
+   func testFunctionParameterLocalType() {
+      let s = "local: String test"
+
+      let sut = SwiftProtocolParser.functionParameter
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let funcParam = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(funcParam.localName, "local")
+      XCTAssertEqual(funcParam.type, "String")
+      XCTAssertFalse(funcParam.isParams)
+      XCTAssertNil(funcParam.externalName)
+   }
+
+   //TODO: deal with expressions
+   //func testFunctionParameterLocalTypeDefault() {
+   //}
+
+   func testFunctionParameterLocalTypeParams() {
+      let s = "locals: String... test"
+
+      let sut = SwiftProtocolParser.functionParameter
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let funcParam = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(funcParam.localName, "locals")
+      XCTAssertEqual(funcParam.type, "String")
+      XCTAssertTrue(funcParam.isParams)
+      XCTAssertNil(funcParam.externalName)
+   }
+
+   func testFunctionParameterExternalLocalType() {
+      let s = "external local: String test"
+
+      let sut = SwiftProtocolParser.functionParameter
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let funcParam = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(funcParam.localName, "local")
+      XCTAssertEqual(funcParam.type, "String")
+      XCTAssertFalse(funcParam.isParams)
+      XCTAssertEqual(funcParam.externalName, "external")
+   }
+
+   func testFunctionParameterExternalLocalTypeParams() {
+      let s = " external locals: String... test"
+
+      let sut = SwiftProtocolParser.functionParameter
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let funcParam = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(funcParam.localName, "locals")
+      XCTAssertEqual(funcParam.type, "String")
+      XCTAssertTrue(funcParam.isParams)
+      XCTAssertEqual(funcParam.externalName, "external")
+   }
+
+   func testFunctionParameterListEmpty() {
+      let s = " test"
+
+      let sut = SwiftProtocolParser.functionParameterList
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let funcParams = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertTrue(funcParams.isEmpty)
+   }
+
+   func testFunctionParameterListSingle() {
+      let s = "local: Int test"
+
+      let sut = SwiftProtocolParser.functionParameterList
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let funcParams = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertFalse(funcParams.isEmpty)
+      XCTAssertEqual(funcParams.count, 1)
+      guard funcParams.count == 1 else { return }
+      XCTAssertEqual(funcParams[0].localName, "local")
+      XCTAssertEqual(funcParams[0].type, "Int")
+      XCTAssertFalse(funcParams[0].isParams)
+      XCTAssertNil(funcParams[0].externalName)
+   }
+
+   func testFunctionParameterListMulti() {
+      let s = "local: Int, outer second: [String], last: Bool... test"
+
+      let sut = SwiftProtocolParser.functionParameterList
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let funcParams = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertFalse(funcParams.isEmpty)
+      XCTAssertEqual(funcParams.count, 3)
+      guard funcParams.count == 3 else { return }
+      XCTAssertEqual(funcParams[0].localName, "local")
+      XCTAssertEqual(funcParams[0].type, "Int")
+      XCTAssertFalse(funcParams[0].isParams)
+      XCTAssertNil(funcParams[0].externalName)
+      XCTAssertEqual(funcParams[1].localName, "second")
+      XCTAssertEqual(funcParams[1].type, "[String]")
+      XCTAssertFalse(funcParams[1].isParams)
+      XCTAssertEqual(funcParams[1].externalName, "outer")
+      XCTAssertEqual(funcParams[2].localName, "last")
+      XCTAssertEqual(funcParams[2].type, "Bool")
+      XCTAssertTrue(funcParams[2].isParams)
+      XCTAssertNil(funcParams[2].externalName)
+   }
+
+   func testFunctionParameterListComplex() {
+      let s = "temp: inout Int, byId id:Int, handleResult: @escaping (Result<Asset>) -> Void test"
+
+      let sut = SwiftProtocolParser.functionParameterList
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let funcParams = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertFalse(funcParams.isEmpty)
+      XCTAssertEqual(funcParams.count, 3)
+      guard funcParams.count == 3 else { return }
+      XCTAssertEqual(funcParams[0].localName, "temp")
+      XCTAssertEqual(funcParams[0].type, "inout Int")
+      XCTAssertFalse(funcParams[0].isParams)
+      XCTAssertNil(funcParams[0].externalName)
+      XCTAssertEqual(funcParams[1].localName, "id")
+      XCTAssertEqual(funcParams[1].type, "Int")
+      XCTAssertFalse(funcParams[1].isParams)
+      XCTAssertEqual(funcParams[1].externalName, "byId")
+      XCTAssertEqual(funcParams[2].localName, "handleResult")
+      XCTAssertEqual(funcParams[2].type, "@escaping (Result<Asset>) -> Void")
+      XCTAssertFalse(funcParams[2].isParams)
+      XCTAssertNil(funcParams[2].externalName)
+   }
+
    func testLinuxTestSuiteIncludesAllTests() {
 #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
       let thisClass = type(of: self)
@@ -1643,5 +1842,16 @@ class SwiftProtocolParserTests: XCTestCase {
       , ("testOptionalGenericParameterClauseNil", testOptionalGenericParameterClauseNil)
       , ("testOptionalGenericParameterClauseSimple", testOptionalGenericParameterClauseSimple)
       , ("testOptionalGenericParameterClauseComplex", testOptionalGenericParameterClauseComplex)
+      , ("testFunctionResultNil", testFunctionResultNil)
+      , ("testFunctionResultSimple", testFunctionResultSimple)
+      , ("testFunctionResultComplex", testFunctionResultComplex)
+      , ("testFunctionParameterLocalType", testFunctionParameterLocalType)
+      , ("testFunctionParameterLocalTypeParams", testFunctionParameterLocalTypeParams)
+      , ("testFunctionParameterExternalLocalType", testFunctionParameterExternalLocalType)
+      , ("testFunctionParameterExternalLocalTypeParams", testFunctionParameterExternalLocalTypeParams)
+      , ("testFunctionParameterListEmpty", testFunctionParameterListEmpty)
+      , ("testFunctionParameterListSingle", testFunctionParameterListSingle)
+      , ("testFunctionParameterListMulti", testFunctionParameterListMulti)
+      , ("testFunctionParameterListComplex", testFunctionParameterListComplex)
    ]
 }

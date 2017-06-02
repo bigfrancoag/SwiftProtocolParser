@@ -185,7 +185,7 @@ public enum SwiftProtocolParser {
    static let baseIdentifier = curry { s, xs in s + xs.joined(separator: "") } <^> identifierHead <*> identifierChar.*
    static let identifier = baseIdentifier.token()
 
-   static let rawAttribute = curry { name, args in (name: name, args: args) } <^> (atSign *> baseIdentifier).token() <*> orEmpty(Parsers.regex(pattern: "\\(.*\\)").token().?)
+   static let rawAttribute = curry { name, args in (name: name, args: args) } <^> (atSign *> baseIdentifier).token() <*> orEmpty(Parsers.regex(pattern: "\\(.*\\)").?)
    static let attributeString = rawAttribute.map { "@\($0.name)\($0.args)" } 
    static let optionalAttributesString = rawAttribute.many().map { xs in xs.map {"@\($0.name)\($0.args)" }.joined(separator: " ") }.map { $0.isEmpty ? "" : $0 + " " }
    static let attribute = rawAttribute.map { Attribute(name: $0.name, argumentsClause: $0.args) } 
@@ -319,10 +319,23 @@ public enum SwiftProtocolParser {
    static let genericParameterList = genericParameter.separatedBy(some: comma).map { $0.joined(separator: ", ") }
    static let genericParameterClause = openAngle *> genericParameterList <* closeAngle
    static let optionalGenericParameterClause = genericParameterClause.?
-//TODO: Continue tests here
 
    static let functionResult = arrowOperator *> type
-   static let functionParameterList = Parser(pure: "NOT IMPLEMENTED") //functionParameter.separatedBy(comma).map { $0
+//TODO: Continue tests here
+   static let externalFunctionParameter = curry { ext, local, type in (ext: ext as String?, local: local, type: type) }
+      <^> identifier
+      <*> identifier
+      <*> typeAnnotationClause.map { $0.substring(from: $0.index($0.startIndex, offsetBy: 2)) }
+
+   static let normalFunctionParameter = curry { local, type in (ext: nil as String?, local: local, type: type) }
+      <^> identifier
+      <*> typeAnnotationClause.map { $0.substring(from: $0.index($0.startIndex, offsetBy: 2)) }
+
+   static let functionParameter = curry { base, params in MethodParameter(localName: base.local, type: base.type, externalName: base.ext, defaultClause: nil, isParams: params) }
+      <^> (externalFunctionParameter <|> normalFunctionParameter)
+      <*> optionalEllipsis.map { $0 != "" }
+
+   static let functionParameterList = functionParameter.separatedBy(comma)
    static let functionParameterClause = openParens *> functionParameterList <* closeParens
    static let functionSignature = curry { params, throwsType, result in "" }
       <^> functionParameterClause
