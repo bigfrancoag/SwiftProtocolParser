@@ -176,6 +176,7 @@ public enum SwiftProtocolParser {
    static let selfKeyword = Parsers.token("Self").token()
    static let staticKeyword = Parsers.token("static").token()
    static let whereKeyword = Parsers.token("where").token()
+   static let initKeyword = Parsers.token("init").token()
    static let optionalInout = padRight(inoutKeyword.?)
    static let optionalEllipsis = orEmpty(ellipsis.?)
    static let semicolon = Parsers.token(";").token()
@@ -368,7 +369,27 @@ public enum SwiftProtocolParser {
 
    static let methodProtocolMember = methodMember.map { ProtocolMember.method($0) }
 
+//TODO: init 
 //TODO: Continue tests here
+   static let initHead: Parser<(attributes: [Attribute], modifiers: [DeclarationModifier], isOptional: Bool, isIUO: Bool)> = curry { attrs, mods, _, extra in (attributes: attrs, modifiers: mods, isOptional: extra == "?", isIUO: extra == "!") }
+      <^> attribute.*
+      <*> methodAccessModifier.*
+      <*> initKeyword
+      <*> (questionMark.token() <|> bang.token() <|> Parser(pure: ""))
+
+   static let initMember: Parser<InitializerMember> = curry { head, genericsClause, params, throwsType, whereClause in InitializerMember(attributes: head.attributes, modifiers: head.modifiers, genericsClause: genericsClause, parameters: params, throwsType: throwsType, isOptional: head.isOptional, isIUO: head.isIUO) }
+      <^> initHead
+      <*> optionalGenericParameterClause
+      <*> functionParameterClause
+      <*> (throwsKeyword <|> rethrowsKeyword).map({ $0 == "throws" ? .throwsError : .rethrowsError }).?
+      <*> optionalGenericWhereClause
+
+   static let initProtocolMember = initMember.map { ProtocolMember.initializer($0) }
+
+//TODO: subscript 
+//TODO: associatedType
+//TODO: typealias
+
    //TODO:
    static let protocolMember: Parser<ProtocolMember> = propertyProtocolMember <|> methodProtocolMember
    static let protocolBlock: Parser<[ProtocolMember]> = openBlock *> protocolMember.separatedBy(some: statementSeparator) <* closeBlock
