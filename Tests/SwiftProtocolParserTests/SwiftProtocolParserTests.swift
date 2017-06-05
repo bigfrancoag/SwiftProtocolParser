@@ -1713,6 +1713,274 @@ class SwiftProtocolParserTests: XCTestCase {
       XCTAssertNil(funcParams[2].externalName)
    }
 
+   func testFunctionSignatureSimple() {
+      let s = "() test"
+
+      let sut = SwiftProtocolParser.functionSignature
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let funcSignature = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      let params = funcSignature.params
+      let throwsType = funcSignature.throwsType
+      let returnType = funcSignature.returnType
+
+      XCTAssertTrue(params.isEmpty)
+      XCTAssertNil(throwsType)
+      XCTAssertNil(returnType)
+   }
+
+   func testFunctionSignatureConsumer() {
+      let s = "(s: String) test"
+
+      let sut = SwiftProtocolParser.functionSignature
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let funcSignature = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      let params = funcSignature.params
+      let throwsType = funcSignature.throwsType
+      let returnType = funcSignature.returnType
+
+      XCTAssertFalse(params.isEmpty)
+      XCTAssertEqual(params.count, 1)
+      XCTAssertEqual(params[0].localName, "s")
+      XCTAssertEqual(params[0].type, "String")
+      XCTAssertFalse(params[0].isParams)
+      XCTAssertNil(params[0].externalName)
+      XCTAssertNil(throwsType)
+      XCTAssertNil(returnType)
+   }
+
+
+   func testFunctionSignatureSupplier() {
+      let s = "() -> String test"
+
+      let sut = SwiftProtocolParser.functionSignature
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let funcSignature = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      let params = funcSignature.params
+      let throwsType = funcSignature.throwsType
+      let returnType = funcSignature.returnType
+
+      XCTAssertTrue(params.isEmpty)
+      XCTAssertNil(throwsType)
+      XCTAssertEqual(returnType, "String")
+   }
+
+   func testFunctionSignatureFunc() {
+      let s = "(s: String) -> (Int, x: Bool) test"
+
+      let sut = SwiftProtocolParser.functionSignature
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let funcSignature = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      let params = funcSignature.params
+      let throwsType = funcSignature.throwsType
+      let returnType = funcSignature.returnType
+
+      XCTAssertFalse(params.isEmpty)
+      XCTAssertEqual(params.count, 1)
+      XCTAssertEqual(params[0].localName, "s")
+      XCTAssertEqual(params[0].type, "String")
+      XCTAssertFalse(params[0].isParams)
+      XCTAssertNil(params[0].externalName)
+      XCTAssertNil(throwsType)
+      XCTAssertEqual(returnType, "(Int, x: Bool)")
+   }
+
+   func testFunctionSignatureThrowingFunc() {
+      let s = "(s: String, y: Int) throws -> [Double] test"
+
+      let sut = SwiftProtocolParser.functionSignature
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let funcSignature = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      let params = funcSignature.params
+      let throwsType = funcSignature.throwsType
+      let returnType = funcSignature.returnType
+
+      XCTAssertFalse(params.isEmpty)
+      XCTAssertEqual(params.count, 2)
+      guard params.count == 2 else { return }
+      XCTAssertEqual(params[0].localName, "s")
+      XCTAssertEqual(params[0].type, "String")
+      XCTAssertFalse(params[0].isParams)
+      XCTAssertNil(params[0].externalName)
+      XCTAssertEqual(params[1].localName, "y")
+      XCTAssertEqual(params[1].type, "Int")
+      XCTAssertFalse(params[1].isParams)
+      XCTAssertNil(params[1].externalName)
+      XCTAssertEqual(throwsType, ThrowsType.throwsError)
+      XCTAssertEqual(returnType, "[Double]")
+   }
+
+   func testFunctionSignatureRethrowingConsumer() {
+      let s = "(block: (Int, Int) throws -> String) rethrows -> (Int) -> String test"
+
+      let sut = SwiftProtocolParser.functionSignature
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let funcSignature = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      let params = funcSignature.params
+      let throwsType = funcSignature.throwsType
+      let returnType = funcSignature.returnType
+
+      XCTAssertFalse(params.isEmpty)
+      XCTAssertEqual(params.count, 1)
+      guard params.count == 1 else { return }
+      XCTAssertEqual(params[0].localName, "block")
+      XCTAssertEqual(params[0].type, "(Int, Int) throws -> String")
+      XCTAssertFalse(params[0].isParams)
+      XCTAssertNil(params[0].externalName)
+      XCTAssertEqual(throwsType, ThrowsType.rethrowsError)
+      XCTAssertEqual(returnType, "(Int) -> String")
+   }
+
+   func testGenericWhereClauseSameTypeRequirement() {
+      let s = " T  ==  String test"
+
+      let sut = SwiftProtocolParser.genericWhereClauseSameTypeRequirement
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let req = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(req, "T == String")
+   }
+
+   func testGenericWhereClauseConformanceRequirementType() {
+      let s = "T : Iterator.Element test"
+
+      let sut = SwiftProtocolParser.genericWhereClauseConformanceRequirement
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let req = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(req, "T : Iterator.Element")
+   }
+
+   func testGenericWhereClauseConformanceRequirementProtocol() {
+      let s = "T : Hashable & Serializable test"
+
+      let sut = SwiftProtocolParser.genericWhereClauseConformanceRequirement
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let req = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(req, "T : Hashable & Serializable")
+   }
+
+   func testGenericWhereClauseSimple() {
+      let s = "where T : Hashable test"
+
+      let sut = SwiftProtocolParser.genericWhereClause
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let req = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(req, "T : Hashable")
+   }
+
+   func testGenericWhereClauseMulti() {
+      let s = " where T:Hashable , U:Equatable & RawRepresentable test"
+
+      let sut = SwiftProtocolParser.genericWhereClause
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let req = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(req, "T : Hashable, U : Equatable & RawRepresentable")
+   }
+
+   func testMethodMemberFull() {
+      let s = "@discardableResult public static func doThat<T, U>(t: T, f: (T) -> U) throws -> U where T : Hashable test"
+
+      let sut = SwiftProtocolParser.methodMember
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let method = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(method.attributes.count, 1)
+      guard method.attributes.count == 1 else { return }
+      XCTAssertEqual(method.attributes[0].name, "discardableResult")
+      XCTAssertEqual(method.modifiers.count, 2)
+      guard method.modifiers.count == 2 else { return }
+      XCTAssertTrue(method.modifiers[0] == DeclarationModifier.access(.publicAccess))
+      XCTAssertTrue(method.modifiers[1] == DeclarationModifier.isStatic)
+      XCTAssertEqual(method.name, "doThat")
+      XCTAssertEqual(method.genericsClause, "T, U")
+      XCTAssertEqual(method.parameters.count, 2)
+      guard method.parameters.count == 2 else { return }
+      XCTAssertEqual(method.parameters[0].localName, "t")
+      XCTAssertEqual(method.parameters[0].type, "T")
+      XCTAssertEqual(method.parameters[1].localName, "f")
+      XCTAssertEqual(method.parameters[1].type, "(T) -> U")
+      XCTAssertEqual(method.throwsType, ThrowsType.throwsError)
+      XCTAssertEqual(method.returnType, "U")
+      XCTAssertEqual(method.whereClause, "T : Hashable")
+   }
+
+   func testMethodMemberBasic() {
+      let s = "func f()"
+
+      let sut = SwiftProtocolParser.methodMember
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let method = result[0].result
+      XCTAssertEqual(method.attributes.count, 0)
+      XCTAssertEqual(method.modifiers.count, 0)
+      XCTAssertEqual(method.name, "f")
+      XCTAssertNil(method.genericsClause)
+      XCTAssertEqual(method.parameters.count, 0)
+      XCTAssertNil(method.throwsType)
+      XCTAssertNil(method.returnType)
+      XCTAssertNil(method.whereClause)
+   }
+
    func testLinuxTestSuiteIncludesAllTests() {
 #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
       let thisClass = type(of: self)
@@ -1853,5 +2121,18 @@ class SwiftProtocolParserTests: XCTestCase {
       , ("testFunctionParameterListSingle", testFunctionParameterListSingle)
       , ("testFunctionParameterListMulti", testFunctionParameterListMulti)
       , ("testFunctionParameterListComplex", testFunctionParameterListComplex)
+      , ("testFunctionSignatureSimple", testFunctionSignatureSimple)
+      , ("testFunctionSignatureConsumer", testFunctionSignatureConsumer)
+      , ("testFunctionSignatureSupplier", testFunctionSignatureSupplier)
+      , ("testFunctionSignatureFunc", testFunctionSignatureFunc)
+      , ("testFunctionSignatureThrowingFunc", testFunctionSignatureThrowingFunc)
+      , ("testFunctionSignatureRethrowingConsumer", testFunctionSignatureRethrowingConsumer)
+      , ("testGenericWhereClauseSameTypeRequirement", testGenericWhereClauseSameTypeRequirement)
+      , ("testGenericWhereClauseConformanceRequirementType", testGenericWhereClauseConformanceRequirementType)
+      , ("testGenericWhereClauseConformanceRequirementProtocol", testGenericWhereClauseConformanceRequirementProtocol)
+      , ("testGenericWhereClauseSimple", testGenericWhereClauseSimple)
+      , ("testGenericWhereClauseMulti", testGenericWhereClauseMulti)
+      , ("testMethodMemberFull", testMethodMemberFull)
+      , ("testMethodMemberBasic", testMethodMemberBasic)
    ]
 }

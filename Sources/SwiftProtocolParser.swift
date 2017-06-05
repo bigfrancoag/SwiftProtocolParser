@@ -152,6 +152,7 @@ public enum SwiftProtocolParser {
 
    static let openSquare = Parsers.token("[").token()
    static let closeSquare = Parsers.token("]").token()
+   static let doubleEqual = Parsers.token("==").token()
 
    static let protocolKeyword = Parsers.token("protocol").token()
    static let optionalKeyword = Parsers.token("optional").token()
@@ -174,6 +175,7 @@ public enum SwiftProtocolParser {
    static let anyKeyword = Parsers.token("Any").token()
    static let selfKeyword = Parsers.token("Self").token()
    static let staticKeyword = Parsers.token("static").token()
+   static let whereKeyword = Parsers.token("where").token()
    static let optionalInout = padRight(inoutKeyword.?)
    static let optionalEllipsis = orEmpty(ellipsis.?)
    static let semicolon = Parsers.token(";").token()
@@ -215,7 +217,7 @@ public enum SwiftProtocolParser {
    static let funcArgsWithParams = (openParens *> funcArgParams <* closeParens).map { "(\($0))" }
    static let funcArguments = funcArgsNoParams <|> funcArgsWithParams
    static let optionalThrows = padRight((throwsKeyword <|> rethrowsKeyword).?)
-   static let functionType = curry { attrs, args, thrws, _, t in "\(attrs)\(args)\(thrws) -> \(t)" }
+   static let functionType = curry { attrs, args, thrws, _, t in "\(attrs)\(args) \(thrws)-> \(t)" }
       <^> optionalAttributesString
       <*> funcArguments
       <*> optionalThrows
@@ -321,7 +323,7 @@ public enum SwiftProtocolParser {
    static let optionalGenericParameterClause = genericParameterClause.?
 
    static let functionResult = arrowOperator *> type
-//TODO: Continue tests here
+
    static let externalFunctionParameter = curry { ext, local, type in (ext: ext as String?, local: local, type: type) }
       <^> identifier
       <*> identifier
@@ -337,14 +339,27 @@ public enum SwiftProtocolParser {
 
    static let functionParameterList = functionParameter.separatedBy(comma)
    static let functionParameterClause = openParens *> functionParameterList <* closeParens
-   static let functionSignature = curry { params, throwsType, result in "" }
+   static let functionSignature: Parser<(params: [MethodParameter], throwsType: ThrowsType?, returnType: String?)> = curry { params, throwsType, result in (params: params, throwsType: throwsType, returnType: result) }
       <^> functionParameterClause
-      <*> (throwsKeyword <|> rethrowsKeyword).?
+      <*> (throwsKeyword <|> rethrowsKeyword).map({ $0 == "throws" ? .throwsError : .rethrowsError }).?
       <*> functionResult.?
 
-   static let optionalGenericWhereClause = Parser(pure: "NOT IMPLEMENTED")
+   static let genericWhereClauseSameTypeRequirement = curry { typeId, _, typeId2 in "\(typeId) == \(typeId2)" }
+      <^> typeIdentifier
+      <*> doubleEqual
+      <*> typeIdentifier
 
-   static let methodMember: Parser<MethodMember> = curry { head, name, gens, sig, whr in MethodMember(attributes: head.attributes, modifiers: head.modifiers, name: name, genericsClause: gens, parameters: [], isThrows: false, isRethrows: false, returnType: nil, whereClause: nil) }
+   static let genericWhereClauseConformanceRequirement = curry { typeId, _, typeId2 in "\(typeId) : \(typeId2)" }
+      <^> typeIdentifier
+      <*> colon
+      <*> (protocolCompositionType <|> typeIdentifier)
+
+   static let genericWhereClauseRequirement = genericWhereClauseConformanceRequirement <|> genericWhereClauseSameTypeRequirement
+   static let genericWhereClauseRequirementList = genericWhereClauseRequirement.separatedBy(some: comma).map { $0.joined(separator: ", ") }
+   static let genericWhereClause = whereKeyword *> genericWhereClauseRequirementList
+   static let optionalGenericWhereClause = genericWhereClause.?
+
+   static let methodMember: Parser<MethodMember> = curry { head, name, gens, sig, whr in MethodMember(attributes: head.attributes, modifiers: head.modifiers, name: name, genericsClause: gens, parameters: sig.params, throwsType: sig.throwsType, returnType: sig.returnType, whereClause: whr) }
       <^> functionHead
       <*> functionName
       <*> optionalGenericParameterClause
@@ -353,6 +368,7 @@ public enum SwiftProtocolParser {
 
    static let methodProtocolMember = methodMember.map { ProtocolMember.method($0) }
 
+//TODO: Continue tests here
    //TODO:
    static let protocolMember: Parser<ProtocolMember> = propertyProtocolMember <|> methodProtocolMember
    static let protocolBlock: Parser<[ProtocolMember]> = openBlock *> protocolMember.separatedBy(some: statementSeparator) <* closeBlock

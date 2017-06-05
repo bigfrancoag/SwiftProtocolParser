@@ -4,8 +4,7 @@ public struct MethodMember {
    let name: String
    let genericsClause: String?
    let parameters: [MethodParameter]
-   let isThrows: Bool
-   let isRethrows: Bool
+   let throwsType: ThrowsType?
    let returnType: String?
    let whereClause: String?
 }
