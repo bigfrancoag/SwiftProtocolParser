@@ -2070,8 +2070,56 @@ class SwiftProtocolParserTests: XCTestCase {
       XCTAssertFalse(initHead.isIUO)
    }
 
-/*
-*/
+   func testInitMemberFull() {
+      let s = "@attr public init<T, U>(t: T, f: (T) -> U) throws where T : Hashable test"
+
+      let sut = SwiftProtocolParser.initMember
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let initializer = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(initializer.attributes.count, 1)
+      guard initializer.attributes.count == 1 else { return }
+      XCTAssertEqual(initializer.attributes[0].name, "attr")
+      XCTAssertEqual(initializer.modifiers.count, 1)
+      guard initializer.modifiers.count == 1 else { return }
+      XCTAssertTrue(initializer.modifiers[0] == DeclarationModifier.access(.publicAccess))
+      XCTAssertEqual(initializer.genericsClause, "T, U")
+      XCTAssertEqual(initializer.whereClause, "T : Hashable")
+      XCTAssertEqual(initializer.parameters.count, 2)
+      guard initializer.parameters.count == 2 else { return }
+      XCTAssertEqual(initializer.parameters[0].localName, "t")
+      XCTAssertEqual(initializer.parameters[0].type, "T")
+      XCTAssertEqual(initializer.parameters[1].localName, "f")
+      XCTAssertEqual(initializer.parameters[1].type, "(T) -> U")
+      XCTAssertEqual(initializer.throwsType, ThrowsType.throwsError)
+      XCTAssertFalse(initializer.isOptional)
+      XCTAssertFalse(initializer.isIUO)
+   }
+
+   func testInitMemberBasic() {
+      let s = "init?()"
+
+      let sut = SwiftProtocolParser.initMember
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let initializer = result[0].result
+      XCTAssertEqual(initializer.attributes.count, 0)
+      XCTAssertEqual(initializer.modifiers.count, 0)
+      XCTAssertNil(initializer.genericsClause)
+      XCTAssertNil(initializer.whereClause)
+      XCTAssertEqual(initializer.parameters.count, 0)
+      XCTAssertNil(initializer.throwsType)
+      XCTAssertTrue(initializer.isOptional)
+      XCTAssertFalse(initializer.isIUO)
+   }
+
    func testLinuxTestSuiteIncludesAllTests() {
 #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
       let thisClass = type(of: self)
@@ -2230,5 +2278,7 @@ class SwiftProtocolParserTests: XCTestCase {
       , ("testInitHeadIUO", testInitHeadIUO)
       , ("testInitHeadAttribute", testInitHeadAttribute)
       , ("testInitHeadModifier", testInitHeadModifier)
+      , ("testInitMemberFull", testInitMemberFull)
+      , ("testInitMemberBasic", testInitMemberBasic)
    ]
 }
