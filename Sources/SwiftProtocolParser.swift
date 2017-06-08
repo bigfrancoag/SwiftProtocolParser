@@ -369,14 +369,13 @@ public enum SwiftProtocolParser {
 
    static let methodProtocolMember = methodMember.map { ProtocolMember.method($0) }
 
-//TODO: init 
-//TODO: Continue tests here
    static let initHead: Parser<(attributes: [Attribute], modifiers: [DeclarationModifier], isOptional: Bool, isIUO: Bool)> = curry { attrs, mods, _, extra in (attributes: attrs, modifiers: mods, isOptional: extra == "?", isIUO: extra == "!") }
       <^> attribute.*
       <*> methodAccessModifier.*
       <*> initKeyword
       <*> (questionMark.token() <|> bang.token() <|> Parser(pure: ""))
 
+//TODO: Continue tests here
    static let initMember: Parser<InitializerMember> = curry { head, genericsClause, params, throwsType, whereClause in InitializerMember(attributes: head.attributes, modifiers: head.modifiers, genericsClause: genericsClause, parameters: params, throwsType: throwsType, isOptional: head.isOptional, isIUO: head.isIUO) }
       <^> initHead
       <*> optionalGenericParameterClause

@@ -1981,6 +1981,97 @@ class SwiftProtocolParserTests: XCTestCase {
       XCTAssertNil(method.whereClause)
    }
 
+   func testInitHeadBasic() {
+      let s = "init test"
+
+      let sut = SwiftProtocolParser.initHead
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let initHead = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(initHead.attributes.count, 0)
+      XCTAssertEqual(initHead.modifiers.count, 0)
+      XCTAssertFalse(initHead.isOptional)
+      XCTAssertFalse(initHead.isIUO)
+   }
+
+   func testInitHeadOptional() {
+      let s = "init? test"
+
+      let sut = SwiftProtocolParser.initHead
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let initHead = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(initHead.attributes.count, 0)
+      XCTAssertEqual(initHead.modifiers.count, 0)
+      XCTAssertTrue(initHead.isOptional)
+      XCTAssertFalse(initHead.isIUO)
+   }
+
+   func testInitHeadIUO() {
+      let s = "init! test"
+
+      let sut = SwiftProtocolParser.initHead
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let initHead = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(initHead.attributes.count, 0)
+      XCTAssertEqual(initHead.modifiers.count, 0)
+      XCTAssertFalse(initHead.isOptional)
+      XCTAssertTrue(initHead.isIUO)
+   }
+
+   func testInitHeadAttribute() {
+      let s = "@optional init test"
+
+      let sut = SwiftProtocolParser.initHead
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let initHead = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(initHead.attributes.count, 1)
+      guard initHead.attributes.count == 1 else { return }
+      XCTAssertEqual(initHead.attributes[0].name, "optional")
+      XCTAssertEqual(initHead.modifiers.count, 0)
+      XCTAssertFalse(initHead.isOptional)
+      XCTAssertFalse(initHead.isIUO)
+   }
+
+   func testInitHeadModifier() {
+      let s = "internal init test"
+
+      let sut = SwiftProtocolParser.initHead
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let initHead = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(initHead.attributes.count, 0)
+      XCTAssertEqual(initHead.modifiers.count, 1)
+      guard initHead.modifiers.count == 1 else { return }
+      XCTAssertTrue(initHead.modifiers[0] == DeclarationModifier.access(.internalAccess))
+      XCTAssertFalse(initHead.isOptional)
+      XCTAssertFalse(initHead.isIUO)
+   }
+
+/*
+*/
    func testLinuxTestSuiteIncludesAllTests() {
 #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
       let thisClass = type(of: self)
@@ -2134,5 +2225,10 @@ class SwiftProtocolParserTests: XCTestCase {
       , ("testGenericWhereClauseMulti", testGenericWhereClauseMulti)
       , ("testMethodMemberFull", testMethodMemberFull)
       , ("testMethodMemberBasic", testMethodMemberBasic)
+      , ("testInitHeadBasic", testInitHeadBasic)
+      , ("testInitHeadOptional", testInitHeadOptional)
+      , ("testInitHeadIUO", testInitHeadIUO)
+      , ("testInitHeadAttribute", testInitHeadAttribute)
+      , ("testInitHeadModifier", testInitHeadModifier)
    ]
 }
