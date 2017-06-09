@@ -5,6 +5,6 @@ import PackageDescription
 let package = Package(
    name: "SwiftProtocolParser"
    , dependencies: [
-      .Package(url: "../ParseKit", majorVersion: 0)
+      .Package(url: "git@bitbucket.org:bigfrancoag/parsekit.git", majorVersion: 0)
    ]
 )

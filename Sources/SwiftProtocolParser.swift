@@ -375,7 +375,6 @@ public enum SwiftProtocolParser {
       <*> initKeyword
       <*> (questionMark.token() <|> bang.token() <|> Parser(pure: ""))
 
-//TODO: Continue tests here
    static let initMember: Parser<InitializerMember> = curry { head, genericsClause, params, throwsType, whereClause in InitializerMember(attributes: head.attributes, modifiers: head.modifiers, genericsClause: genericsClause, whereClause: whereClause, parameters: params, throwsType: throwsType, isOptional: head.isOptional, isIUO: head.isIUO) }
       <^> initHead
       <*> optionalGenericParameterClause
@@ -384,6 +383,8 @@ public enum SwiftProtocolParser {
       <*> optionalGenericWhereClause
 
    static let initProtocolMember = initMember.map { ProtocolMember.initializer($0) }
+
+//TODO: Continue tests here
 
 //TODO: subscript 
 //TODO: associatedType
