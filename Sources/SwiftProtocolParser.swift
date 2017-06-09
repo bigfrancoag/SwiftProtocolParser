@@ -10,6 +10,17 @@ extension Parser {
 }
 
 public enum SwiftProtocolParser {
+   case instance
+
+   func parse(_ s: String) -> (imports: [ImportStatement], protocols: [ProtocolDeclaration]) {
+      let parser: Parser<(imports: [ImportStatement], protocols: [ProtocolDeclaration])> = curry { imports, prots in (imports: imports, protocols: prots) }
+         <^> SwiftProtocolParser.importStatement.*     
+         <*> SwiftProtocolParser.protocolDeclaration.*
+
+      let parsed =  parser.run(on: s)
+      return parsed.first?.result ?? (imports: [], protocols: [])
+   }
+
    static func operatorHeadCharString() -> String {
       var chars = "/=-+!*%<>&|^~?"
 
@@ -158,6 +169,8 @@ public enum SwiftProtocolParser {
    static let protocolKeyword = Parsers.token("protocol").token()
    static let optionalKeyword = Parsers.token("optional").token()
    static let classKeyword = Parsers.token("class").token()
+   static let structKeyword = Parsers.token("struct").token()
+   static let enumKeyword = Parsers.token("enum").token()
    static let publicKeyword = Parsers.token("public").token()
    static let privateKeyword = Parsers.token("private").token()
    static let fileprivateKeyword = Parsers.token("fileprivate").token()
@@ -181,6 +194,7 @@ public enum SwiftProtocolParser {
    static let subscriptKeyword = Parsers.token("subscript").token()
    static let typeAliasKeyword = Parsers.token("typealisas").token()
    static let associatedTypeKeyword = Parsers.token("associatedtype").token()
+   static let importKeyword = Parsers.token("import").token()
    static let optionalInout = padRight(inoutKeyword.?)
    static let optionalEllipsis = orEmpty(ellipsis.?)
    static let semicolon = Parsers.token(";").token()
@@ -434,4 +448,13 @@ public enum SwiftProtocolParser {
       <*> protocolKeyword
       <*> inheritanceList
       <*> protocolBlock
+
+   static let importPathIdentifier = identifier <|> operatorName <|> dotOperatorName
+   static let importPath = importPathIdentifier.separatedBy(some: period).map { $0.joined(separator: ".") }
+   static let importKind = typeAliasKeyword <|> structKeyword <|> classKeyword <|> enumKeyword <|> protocolKeyword <|> varKeyword <|> funcKeyword
+   static let importStatement = curry { attrs, _, kind, path in ImportStatement(attributes: attrs, kind: kind, path: path) }
+      <^> attribute.*
+      <*> importKeyword
+      <*> importKind.?
+      <*> importPath
 }
