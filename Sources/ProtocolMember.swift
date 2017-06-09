@@ -4,4 +4,5 @@ public enum ProtocolMember {
    case method(MethodMember)
    case sub(SubscriptMember)
    case associatedType(AssociatedTypeMember)
+   case typeAlias(TypeAliasMember)
 }

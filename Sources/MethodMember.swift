@@ -1,10 +1,10 @@
 public struct MethodMember {
-   let attributes: [Attribute]
-   let modifiers: [DeclarationModifier]
-   let name: String
-   let genericsClause: String?
-   let parameters: [MethodParameter]
-   let throwsType: ThrowsType?
-   let returnType: String?
-   let whereClause: String?
+   public let attributes: [Attribute]
+   public let modifiers: [DeclarationModifier]
+   public let name: String
+   public let genericsClause: String?
+   public let parameters: [MethodParameter]
+   public let throwsType: ThrowsType?
+   public let returnType: String?
+   public let whereClause: String?
 }

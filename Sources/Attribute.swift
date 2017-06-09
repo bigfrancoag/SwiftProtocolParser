@@ -1,6 +1,6 @@
 public struct Attribute {
-   let name: String
-   let argumentsClause: String?
+   public let name: String
+   public let argumentsClause: String?
 }
 
 extension Attribute : Equatable {

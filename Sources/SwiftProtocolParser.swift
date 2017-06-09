@@ -153,6 +153,7 @@ public enum SwiftProtocolParser {
    static let openSquare = Parsers.token("[").token()
    static let closeSquare = Parsers.token("]").token()
    static let doubleEqual = Parsers.token("==").token()
+   static let equal = Parsers.token("=").token()
 
    static let protocolKeyword = Parsers.token("protocol").token()
    static let optionalKeyword = Parsers.token("optional").token()
@@ -177,6 +178,9 @@ public enum SwiftProtocolParser {
    static let staticKeyword = Parsers.token("static").token()
    static let whereKeyword = Parsers.token("where").token()
    static let initKeyword = Parsers.token("init").token()
+   static let subscriptKeyword = Parsers.token("subscript").token()
+   static let typeAliasKeyword = Parsers.token("typealisas").token()
+   static let associatedTypeKeyword = Parsers.token("associatedtype").token()
    static let optionalInout = padRight(inoutKeyword.?)
    static let optionalEllipsis = orEmpty(ellipsis.?)
    static let semicolon = Parsers.token(";").token()
@@ -385,10 +389,40 @@ public enum SwiftProtocolParser {
    static let initProtocolMember = initMember.map { ProtocolMember.initializer($0) }
 
 //TODO: Continue tests here
+   static let subscriptDeclarationModifier = optionalModifier <|> memberAccessModifier
+   static let subscriptMember = curry { attrs, mods, _, params, _, resultAttrs, resultType, getSet in SubscriptMember(attributes: attrs, modifiers: mods, parameters: params, returnAttributes: resultAttrs, returnType: resultType, getterClause: getSet.getter, setterClause: getSet.setter) }
+      <^> attribute.*
+      <*> subscriptDeclarationModifier.*
+      <*> subscriptKeyword
+      <*> functionParameterClause
+      <*> arrowOperator
+      <*> attribute.*
+      <*> type
+      <*> getterSetterClause
 
-//TODO: subscript 
-//TODO: associatedType
+   static let subscriptProtocolMember = subscriptMember.map { ProtocolMember.sub($0) }
+
 //TODO: typealias
+   static let typeAliasAssignment = equal *> type
+   static let typeAliasName = identifier
+   static let typeAliasMember = curry { attrs, access, _, name, genericsClause, type in TypeAliasMember(attributes: attrs, accessModifier: access, name: name, type: type, genericsClause: genericsClause) }
+      <^> attribute.*
+      <*> accessModifiersMapped.?
+      <*> typeAliasKeyword
+      <*> typeAliasName
+      <*> optionalGenericParameterClause
+      <*> typeAliasAssignment
+
+   static let typeAliasProtocolMember = typeAliasMember.map { ProtocolMember.typeAlias($0) }
+
+//TODO: associatedType
+   static let associatedTypeMember = curry { attrs, access, _, name, inheritance, type in AssociatedTypeMember(attributes: attrs, accessModifier: access, name: name, type: type, inheritance: inheritance) }
+      <^> attribute.*
+      <*> accessModifiersMapped.?
+      <*> associatedTypeKeyword
+      <*> typeAliasName
+      <*> inheritanceList
+      <*> typeAliasAssignment.?
 
    //TODO:
    static let protocolMember: Parser<ProtocolMember> = propertyProtocolMember <|> methodProtocolMember

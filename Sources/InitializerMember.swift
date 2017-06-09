@@ -1,10 +1,10 @@
 public struct InitializerMember {
-   let attributes: [Attribute]
-   let modifiers: [DeclarationModifier]
-   let genericsClause: String?
-   let whereClause: String?
-   let parameters: [MethodParameter]
-   let throwsType: ThrowsType?
-   let isOptional: Bool
-   let isIUO: Bool
+   public let attributes: [Attribute]
+   public let modifiers: [DeclarationModifier]
+   public let genericsClause: String?
+   public let whereClause: String?
+   public let parameters: [MethodParameter]
+   public let throwsType: ThrowsType?
+   public let isOptional: Bool
+   public let isIUO: Bool
 }

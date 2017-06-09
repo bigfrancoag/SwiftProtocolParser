@@ -1,8 +1,8 @@
 public struct ProtocolDeclaration {
-   let attributes: [Attribute]
-   let accessModifier: AccessModifier?
-   let inheritance: [Inheritance]
-   let members: [ProtocolMember]
+   public let attributes: [Attribute]
+   public let accessModifier: AccessModifier?
+   public let inheritance: [Inheritance]
+   public let members: [ProtocolMember]
 }
 
 
