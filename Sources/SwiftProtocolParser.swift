@@ -12,7 +12,7 @@ extension Parser {
 public enum SwiftProtocolParser {
    case instance
 
-   func parse(_ s: String) -> (imports: [ImportStatement], protocols: [ProtocolDeclaration]) {
+   public func parse(_ s: String) -> (imports: [ImportStatement], protocols: [ProtocolDeclaration]) {
       let parser: Parser<(imports: [ImportStatement], protocols: [ProtocolDeclaration])> = curry { imports, prots in (imports: imports, protocols: prots) }
          <^> SwiftProtocolParser.importStatement.*     
          <*> SwiftProtocolParser.protocolDeclaration.*
