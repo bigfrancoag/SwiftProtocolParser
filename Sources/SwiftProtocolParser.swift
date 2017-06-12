@@ -18,7 +18,6 @@ public enum SwiftProtocolParser {
          <*> (SwiftProtocolParser.comment.* *> SwiftProtocolParser.protocolDeclaration.* <* SwiftProtocolParser.comment.*)
 
       let parsed =  parser.run(on: s)
-      print(parsed)
       return parsed.first?.result ?? (imports: [], protocols: [])
    }
 
