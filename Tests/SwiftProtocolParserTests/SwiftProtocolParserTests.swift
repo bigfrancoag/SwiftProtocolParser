@@ -2120,6 +2120,20 @@ class SwiftProtocolParserTests: XCTestCase {
       XCTAssertFalse(initializer.isIUO)
    }
 
+   func testComment() {
+     let s = "//Here's a comment\n test"
+
+      let sut = SwiftProtocolParser.comment
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let comment = result[0].result
+      XCTAssertEqual(result[0].remaining, " test")
+      XCTAssertEqual(comment, "Here's a comment")
+   }
+
    func testLinuxTestSuiteIncludesAllTests() {
 #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
       let thisClass = type(of: self)
@@ -2280,5 +2294,6 @@ class SwiftProtocolParserTests: XCTestCase {
       , ("testInitHeadModifier", testInitHeadModifier)
       , ("testInitMemberFull", testInitMemberFull)
       , ("testInitMemberBasic", testInitMemberBasic)
+      , ("testComment", testComment)
    ]
 }

@@ -27,7 +27,7 @@ public enum SwiftProtocolParser {
       <*> commentLineEnd
 
    static let commentLineStart = Parsers.token("//").token()
-   static let commentBody = Parsers.regex(pattern: ".*$")
+   static let commentBody = Parsers.regex(pattern: ".*")
    static let commentLineEnd = Parsers.token("\n")
 
    static func operatorHeadCharString() -> String {
