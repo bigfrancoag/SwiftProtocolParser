@@ -2120,8 +2120,91 @@ class SwiftProtocolParserTests: XCTestCase {
       XCTAssertFalse(initializer.isIUO)
    }
 
+   func testProtocolMemberLineVar() {
+      let s = "var name: String { get }\n\nfunc f()\n\n"
+
+      let sut = SwiftProtocolParser.protocolMember
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let _ = result[0].result
+      XCTAssertEqual("\n\nfunc f()\n\n", result[0].remaining)
+   }
+
+   func testProtocolMemberLineFunc() {
+      let s = "func f()\n\nvar name: String { get }\n\n"
+
+      let sut = SwiftProtocolParser.protocolMember
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let _ = result[0].result
+      XCTAssertEqual("\n\nvar name: String { get }\n\n", result[0].remaining)
+   }
+
+   func testProtocolMemberLineEmpty() {
+      let s = "\n\nfunc f()\n\nvar name: String { get }\n\n"
+
+      let sut = SwiftProtocolParser.protocolMember
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let _ = result[0].result
+      XCTAssertEqual("\n\nvar name: String { get }\n\n", result[0].remaining)
+   }
+
+   func testProtocolBlockEmpty() {
+      let s = "   {\n   }"
+
+      let sut = SwiftProtocolParser.protocolBlock
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let members = result[0].result
+      XCTAssertEqual("", result[0].remaining)
+      XCTAssertTrue(members.isEmpty)
+   }
+
+   func testProtocolBlockSingle() {
+      let s = "   {\n      func f()\n   \n}"
+
+      let sut = SwiftProtocolParser.protocolBlock
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let members = result[0].result
+      XCTAssertEqual("", result[0].remaining)
+      XCTAssertFalse(members.isEmpty)
+      XCTAssertEqual(members.count, 1)
+   }
+
+   func testProtocolBlockMulti() {
+      let s = "   {\n      func f()\n      var name: String { get }\n   }"
+
+      let sut = SwiftProtocolParser.protocolBlock
+      let result = sut.run(on: s)
+
+      XCTAssertFalse(result.isEmpty)
+      XCTAssertEqual(result.count, 1)
+      guard result.count == 1 else { return }
+      let members = result[0].result
+      XCTAssertEqual("", result[0].remaining)
+      XCTAssertFalse(members.isEmpty)
+      XCTAssertEqual(members.count, 2)
+   }
+
    func testComment() {
-     let s = "//Here's a comment\n test"
+      let s = "//Here's a comment\n test"
 
       let sut = SwiftProtocolParser.comment
       let result = sut.run(on: s)
@@ -2132,6 +2215,38 @@ class SwiftProtocolParserTests: XCTestCase {
       let comment = result[0].result
       XCTAssertEqual(result[0].remaining, " test")
       XCTAssertEqual(comment, "Here's a comment")
+   }
+
+   func testSample() {
+      let s = "import Foundation" + "\n" +
+              "//MARK: - AssetManagerProtocol Protocol" + "\n" +
+              "//MARK: -" + "\n" +
+              "protocol AssetManagerProtocol {" + "\n" +
+                 "var asset: Asset? { get }" + "\n" +
+                 "" + "\n" +
+                 "func lookupAsset(byId id:Int, handleResult: @escaping (Result<Asset>) -> Void)" + "\n" +
+                 "func searchCaretakers(byName name:String, handleResult: @escaping (Result<[Caretaker]>) -> Void)" + "\n" +
+                 "func searchOffices(byName name:String, handleResult: @escaping (Result<[Office]>) -> Void)" + "\n" +
+                 "func loadStatuses(handleResult: @escaping (Result<[Status]>) -> Void)" + "\n" +
+                 "func updateAsset(_ asset: Asset, handleResult: @escaping (Result<String?>) -> Void)" + "\n" +
+              "}"
+
+      let sut = SwiftProtocolParser.instance
+      let (imports, protocols) = sut.parse(s)
+
+      XCTAssertFalse(imports.isEmpty)
+      XCTAssertEqual(imports.count, 1)
+      guard imports.count == 1 else { return }
+      XCTAssertEqual(imports[0].path, "Foundation")
+      XCTAssertFalse(protocols.isEmpty)
+      XCTAssertEqual(protocols.count, 1)
+      guard protocols.count == 1 else { return }
+      let prot = protocols[0]
+      XCTAssertEqual(prot.name, "AssetManagerProtocol")
+      XCTAssertTrue(prot.attributes.isEmpty)
+      XCTAssertEqual(prot.accessModifier, .internalAccess)
+      XCTAssertTrue(prot.inheritance.isEmpty)
+      XCTAssertEqual(prot.members.count, 6)
    }
 
    func testLinuxTestSuiteIncludesAllTests() {
@@ -2294,6 +2409,13 @@ class SwiftProtocolParserTests: XCTestCase {
       , ("testInitHeadModifier", testInitHeadModifier)
       , ("testInitMemberFull", testInitMemberFull)
       , ("testInitMemberBasic", testInitMemberBasic)
+      , ("testProtocolMemberLineVar", testProtocolMemberLineVar)
+      , ("testProtocolMemberLineFunc", testProtocolMemberLineFunc)
+      , ("testProtocolMemberLineEmpty", testProtocolMemberLineEmpty)
+      , ("testProtocolBlockEmpty", testProtocolBlockEmpty)
+      , ("testProtocolBlockSingle", testProtocolBlockSingle)
+      , ("testProtocolBlockMulti", testProtocolBlockMulti)
       , ("testComment", testComment)
+      , ("testSample", testSample)
    ]
 }

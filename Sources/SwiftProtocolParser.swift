@@ -18,6 +18,7 @@ public enum SwiftProtocolParser {
          <*> (SwiftProtocolParser.comment.* *> SwiftProtocolParser.protocolDeclaration.* <* SwiftProtocolParser.comment.*)
 
       let parsed =  parser.run(on: s)
+      print(parsed)
       return parsed.first?.result ?? (imports: [], protocols: [])
    }
 
@@ -207,8 +208,7 @@ public enum SwiftProtocolParser {
    static let optionalInout = padRight(inoutKeyword.?)
    static let optionalEllipsis = orEmpty(ellipsis.?)
    static let semicolon = Parsers.token(";").token()
-   static let newLine = (Parsers.token("\n") <|> Parsers.token("\r") <|> Parsers.token("\r\n")).token()
-   static let statementSeparator = semicolon <|> newLine
+   static let statementSeparator = semicolon.?
 
    static let identifierChar = digit <|> identifierHead
    static let identifierHead = character <|> underscore
@@ -447,16 +447,20 @@ public enum SwiftProtocolParser {
       <*> inheritanceList
       <*> typeAliasAssignment.?
 
-   //TODO:
-   static let protocolMember: Parser<ProtocolMember> = propertyProtocolMember <|> methodProtocolMember
-   static let protocolBlock: Parser<[ProtocolMember]> = openBlock *> protocolMember.separatedBy(some: statementSeparator) <* closeBlock
+   static let associatedTypeProtocolMember = associatedTypeMember.map { ProtocolMember.associatedType($0) }
 
-   static let protocolDeclaration = curry { attrs, optModifier, _, xs, members in ProtocolDeclaration(attributes: attrs, accessModifier: optModifier, inheritance: xs, members: members) }
+   //TODO:
+   static let protocolMember: Parser<ProtocolMember> = propertyProtocolMember <|> methodProtocolMember <|> initProtocolMember <|> subscriptProtocolMember <|> typeAliasProtocolMember <|> associatedTypeProtocolMember
+   static let protocolBlock: Parser<[ProtocolMember]> = openBlock *> protocolMember.separatedBy(statementSeparator) <* closeBlock
+
+   static let protocolDeclaration = (curry { attrs, optModifier, _, name, xs, members in ProtocolDeclaration(name: name, attributes: attrs, accessModifier: optModifier, inheritance: xs, members: members) }
       <^> attribute.*
       <*> typeAccessModifier
       <*> protocolKeyword
+      <*> identifier
       <*> inheritanceList
       <*> protocolBlock
+   ).token()
 
    static let importPathIdentifier = identifier <|> operatorName <|> dotOperatorName
    static let importPath = importPathIdentifier.separatedBy(some: period).map { $0.joined(separator: ".") }
