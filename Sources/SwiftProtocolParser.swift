@@ -14,12 +14,21 @@ public enum SwiftProtocolParser {
 
    public func parse(_ s: String) -> (imports: [ImportStatement], protocols: [ProtocolDeclaration]) {
       let parser: Parser<(imports: [ImportStatement], protocols: [ProtocolDeclaration])> = curry { imports, prots in (imports: imports, protocols: prots) }
-         <^> SwiftProtocolParser.importStatement.*     
-         <*> SwiftProtocolParser.protocolDeclaration.*
+         <^> (SwiftProtocolParser.comment.* *> SwiftProtocolParser.importStatement.*)
+         <*> (SwiftProtocolParser.comment.* *> SwiftProtocolParser.protocolDeclaration.* <* SwiftProtocolParser.comment.*)
 
       let parsed =  parser.run(on: s)
       return parsed.first?.result ?? (imports: [], protocols: [])
    }
+
+   static let comment = curry { _, body, _ in body }
+      <^> commentLineStart
+      <*> commentBody
+      <*> commentLineEnd
+
+   static let commentLineStart = Parsers.token("//").token()
+   static let commentBody = Parsers.regex(pattern: ".*$")
+   static let commentLineEnd = Parsers.token("\n")
 
    static func operatorHeadCharString() -> String {
       var chars = "/=-+!*%<>&|^~?"
